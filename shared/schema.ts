@@ -43,7 +43,7 @@ export const students = pgTable("students", {
 // Fundraisers table
 export const fundraisers = pgTable("fundraisers", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
+  name: text("event_name").notNull(), // Changed to match the database column event_name
   location: text("location").notNull(), 
   schoolId: integer("school_id").references(() => schools.id).notNull(),
   isActive: boolean("is_active").default(true).notNull(),

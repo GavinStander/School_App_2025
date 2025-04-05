@@ -222,7 +222,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .select({
           id: fundraisers.id,
-          name: fundraisers.name,
+          name: fundraisers.name, // This now maps to event_name in the DB
           location: fundraisers.location,
           schoolId: fundraisers.schoolId,
           isActive: fundraisers.isActive,
