@@ -143,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "School not found" });
       }
 
-      const { name, location, eventDate } = req.body;
+      const { event_name, location, eventDate } = req.body;
       // Ensure we're passing a valid date
       let formattedDate;
       try {
@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the fundraiser with the validated date
       // Using a string formattable date for storage
       const fundraiser = await storage.createFundraiser({
-        name,
+        name: event_name, // Using the event_name from the request
         location,
         eventDate: formattedDate.toISOString().split('T')[0], // Format as YYYY-MM-DD string
         schoolId: school.id,

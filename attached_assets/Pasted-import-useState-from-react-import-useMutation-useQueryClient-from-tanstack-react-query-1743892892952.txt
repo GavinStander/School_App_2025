@@ -71,9 +71,8 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
         ? format(values.eventDate, 'yyyy-MM-dd') 
         : undefined;
         
-      // Note: Backend expects event_name, not name
       const res = await apiRequest("POST", "/api/school/fundraisers", {
-        event_name: values.name, // Changed to match DB column event_name
+        name: values.name,
         location: values.location,
         eventDate: formattedDate,
       });
