@@ -6,7 +6,7 @@ import {
   type InsertFundraiser, type StudentFundraiser, type InsertStudentFundraiser,
   UserRole
 } from "@shared/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPgSimple from "connect-pg-simple";
@@ -219,12 +219,17 @@ export class DatabaseStorage implements IStorage {
 
   async getFundraisersBySchoolId(schoolId: number): Promise<Fundraiser[]> {
     try {
-      const result = await db
-        .select()
-        .from(fundraisers)
-        .where(eq(fundraisers.schoolId, schoolId))
-        .orderBy(desc(fundraisers.eventDate));
-      return result;
+      console.log("Fetching fundraisers for school ID:", schoolId);
+      // Use SQL query directly to avoid issues with column names
+      const result = await db.execute(
+        sql`SELECT id, name, location, school_id as "schoolId", is_active as "isActive", 
+             event_date as "eventDate", created_at as "createdAt" 
+             FROM fundraisers 
+             WHERE school_id = ${schoolId} 
+             ORDER BY event_date DESC`
+      );
+      console.log("Fundraisers result:", result);
+      return result as Fundraiser[];
     } catch (error) {
       console.error("Error getting fundraisers by school ID:", error);
       return [];
@@ -233,11 +238,18 @@ export class DatabaseStorage implements IStorage {
 
   async createFundraiser(fundraiser: InsertFundraiser): Promise<Fundraiser> {
     try {
-      const [createdFundraiser] = await db
-        .insert(fundraisers)
-        .values(fundraiser)
-        .returning();
-      return createdFundraiser;
+      console.log("Creating fundraiser with direct SQL:", fundraiser);
+      // Use a raw SQL query to insert the data, avoiding Drizzle mapping issues
+      const result = await db.execute(
+        sql`INSERT INTO fundraisers (name, location, school_id, is_active, event_date) 
+            VALUES (${fundraiser.name}, ${fundraiser.location}, ${fundraiser.schoolId}, 
+                   ${fundraiser.isActive ?? true}, ${fundraiser.eventDate})
+            RETURNING id, name, location, school_id as "schoolId", is_active as "isActive", 
+                     event_date as "eventDate", created_at as "createdAt"`
+      );
+      console.log("Create fundraiser result:", result);
+      // Return the first row
+      return result[0] as Fundraiser;
     } catch (error) {
       console.error("Error creating fundraiser:", error);
       throw error;
