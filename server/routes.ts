@@ -144,11 +144,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { name, location, eventDate } = req.body;
-      // Convert the date to string for Drizzle compatibility
+      // Convert the date correctly for Drizzle
       const fundraiser = await storage.createFundraiser({
         name,
         location,
-        eventDate: new Date(eventDate).toISOString(),
+        eventDate: new Date(eventDate), // Pass the Date object directly
         schoolId: school.id,
         isActive: true
       });
