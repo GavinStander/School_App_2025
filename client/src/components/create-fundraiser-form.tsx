@@ -67,10 +67,10 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
   const createFundraiserMutation = useMutation({
     mutationFn: async (values: FundraiserFormValues) => {
       // Format the date properly as YYYY-MM-DD for the API
-      const formattedDate = values.eventDate instanceof Date 
-        ? format(values.eventDate, 'yyyy-MM-dd') 
+      const formattedDate = values.eventDate instanceof Date
+        ? format(values.eventDate, 'yyyy-MM-dd')
         : undefined;
-        
+
       // Note: Backend expects event_name, not name
       const res = await apiRequest("POST", "/api/school/fundraisers", {
         event_name: values.name, // Changed to match DB column event_name
@@ -94,7 +94,7 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
       queryClient.invalidateQueries({ queryKey: ["/api/school/fundraisers"] });
       if (onSuccess) onSuccess();
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to create fundraiser",
@@ -129,7 +129,7 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
                 <FormItem>
                   <FormLabel>Event Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter event name" {...field} />
+                    <Input placeholder="Enter event name" {...field} aria-label="Event Name" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -143,7 +143,7 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
                 <FormItem>
                   <FormLabel>Location</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter event location" {...field} />
+                    <Input placeholder="Enter event location" {...field} aria-label="Location" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -165,6 +165,7 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
                             "w-full pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
+                          aria-label="Select Event Date"
                         >
                           {field.value ? (
                             format(field.value, "PPP")

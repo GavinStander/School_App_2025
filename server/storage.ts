@@ -222,7 +222,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .select({
           id: fundraisers.id,
-          name: fundraisers.name, // This now maps to event_name in the DB
+          eventName: fundraisers.eventName, // Use the correct field name
           location: fundraisers.location,
           schoolId: fundraisers.schoolId,
           isActive: fundraisers.isActive,
@@ -246,7 +246,7 @@ export class DatabaseStorage implements IStorage {
         .values(fundraiser)
         .returning({
           id: fundraisers.id,
-          name: fundraisers.name,
+          eventName: fundraisers.eventName,
           location: fundraisers.location,
           schoolId: fundraisers.schoolId,
           isActive: fundraisers.isActive,

@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the fundraiser with the validated date
       // Using a string formattable date for storage
       const fundraiser = await storage.createFundraiser({
-        name: event_name, // Using the event_name from the request
+        eventName: event_name, // Using the event_name from the request
         location,
         eventDate: formattedDate.toISOString().split('T')[0], // Format as YYYY-MM-DD string
         schoolId: school.id,

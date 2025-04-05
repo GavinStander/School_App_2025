@@ -1,9 +1,18 @@
-import { pgTable, text, serial, integer, boolean, timestamp, date } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  boolean,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// User roles enum
+// -----------------------------
+// Enums
+// -----------------------------
 export const UserRole = {
   ADMIN: "admin",
   SCHOOL: "school",
@@ -12,7 +21,9 @@ export const UserRole = {
 
 export type UserRoleType = (typeof UserRole)[keyof typeof UserRole];
 
-// Users table
+// -----------------------------
+// Tables
+// -----------------------------
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
@@ -22,7 +33,6 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Schools table
 export const schools = pgTable("schools", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -32,7 +42,6 @@ export const schools = pgTable("schools", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Students table
 export const students = pgTable("students", {
   id: serial("id").primaryKey(),
   schoolId: integer("school_id").references(() => schools.id).notNull(),
@@ -40,18 +49,16 @@ export const students = pgTable("students", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Fundraisers table
 export const fundraisers = pgTable("fundraisers", {
   id: serial("id").primaryKey(),
-  name: text("event_name").notNull(), // Changed to match the database column event_name
-  location: text("location").notNull(), 
+  eventName: text("event_name").notNull(),
+  location: text("location").notNull(),
   schoolId: integer("school_id").references(() => schools.id).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
-  eventDate: text("event_date").notNull(), // Using text type for better compatibility
+  eventDate: text("event_date").notNull(), // Use string format 'YYYY-MM-DD'
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Student-Fundraiser relationships
 export const studentFundraisers = pgTable("student_fundraisers", {
   id: serial("id").primaryKey(),
   studentId: integer("student_id").references(() => students.id).notNull(),
@@ -59,8 +66,10 @@ export const studentFundraisers = pgTable("student_fundraisers", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// -----------------------------
 // Relations
-export const usersRelations = relations(users, ({ one, many }) => ({
+// -----------------------------
+export const usersRelations = relations(users, ({ one }) => ({
   school: one(schools, {
     fields: [users.id],
     references: [schools.userId],
@@ -111,7 +120,9 @@ export const studentFundraisersRelations = relations(studentFundraisers, ({ one 
   }),
 }));
 
-// Zod schemas for insertion
+// -----------------------------
+// Zod Insert Schemas
+// -----------------------------
 export const insertUserSchema = createInsertSchema(users, {
   role: z.enum([UserRole.ADMIN, UserRole.SCHOOL, UserRole.STUDENT]),
 }).omit({
@@ -139,7 +150,9 @@ export const insertStudentFundraiserSchema = createInsertSchema(studentFundraise
   createdAt: true,
 });
 
-// Extended schemas for registration
+// -----------------------------
+// Extended Registration Schemas
+// -----------------------------
 export const schoolRegisterSchema = insertUserSchema.extend({
   name: z.string().min(2, "School name is required"),
   adminName: z.string().min(2, "Admin name is required"),
@@ -150,7 +163,9 @@ export const studentRegisterSchema = insertUserSchema.extend({
   schoolId: z.number().min(1, "Please select a school"),
 });
 
-// Type definitions
+// -----------------------------
+// Type Definitions
+// -----------------------------
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
