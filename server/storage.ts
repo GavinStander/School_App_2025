@@ -26,6 +26,7 @@ export interface IStorage {
   getSchoolByUserId(userId: number): Promise<School | undefined>;
   getAllSchools(): Promise<School[]>;
   createSchool(school: InsertSchool): Promise<School>;
+  updateSchool(id: number, data: Partial<InsertSchool>): Promise<School>;
   getSchoolWithStudentCount(schoolId: number): Promise<{school: School, studentCount: number} | undefined>;
   getAllSchoolsWithStudentCount(): Promise<{school: School, studentCount: number}[]>;
   
@@ -96,6 +97,15 @@ export class DatabaseStorage implements IStorage {
   async createSchool(school: InsertSchool): Promise<School> {
     const [createdSchool] = await db.insert(schools).values(school).returning();
     return createdSchool;
+  }
+
+  async updateSchool(id: number, data: Partial<InsertSchool>): Promise<School> {
+    const [updatedSchool] = await db
+      .update(schools)
+      .set(data)
+      .where(eq(schools.id, id))
+      .returning();
+    return updatedSchool;
   }
 
   async getSchoolWithStudentCount(schoolId: number): Promise<{ school: School, studentCount: number } | undefined> {

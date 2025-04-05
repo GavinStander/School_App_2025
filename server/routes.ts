@@ -84,6 +84,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update school information
+  app.put("/api/school/update", isAuthenticated, hasRole(UserRole.SCHOOL), async (req, res) => {
+    try {
+      const school = await storage.getSchoolByUserId(req.user.id);
+      if (!school) {
+        return res.status(404).json({ message: "School not found" });
+      }
+
+      // Extract only allowed fields to update
+      const { name, address, adminName } = req.body;
+      const updatedSchool = await storage.updateSchool(school.id, { 
+        name, 
+        address, 
+        adminName
+      });
+
+      res.json(updatedSchool);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update school information" });
+    }
+  });
+
   // Student routes
   app.get("/api/student/school", isAuthenticated, hasRole(UserRole.STUDENT), async (req, res) => {
     try {

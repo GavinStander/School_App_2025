@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/dashboard-layout";
 import StudentTable from "@/components/student-table";
+import EditSchoolForm from "@/components/edit-school-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 
 export default function SchoolDashboard() {
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { data: userInfo, isLoading } = useQuery({
     queryKey: ["/api/user/info"],
   });
@@ -112,12 +115,25 @@ export default function SchoolDashboard() {
             </div>
           </div>
           <div className="mt-6">
-            <Button variant="outline" className="text-primary">
+            <Button 
+              variant="outline" 
+              className="text-primary"
+              onClick={() => setIsEditDialogOpen(true)}
+            >
               Edit Information
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit School Form Dialog */}
+      {school && (
+        <EditSchoolForm 
+          school={school}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+        />
+      )}
       
       {/* Registered Students */}
       <div>
