@@ -6,10 +6,11 @@ import EditSchoolForm from "@/components/edit-school-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 
 export default function SchoolDashboard() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { data: userInfo, isLoading } = useQuery({
     queryKey: ["/api/user/info"],
   });
@@ -139,22 +140,12 @@ export default function SchoolDashboard() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">Registered Students</h2>
-          <div className="flex items-center">
-            <input 
-              type="text" 
-              placeholder="Search students..." 
-              className="w-64 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-sm mr-2"
-            />
-            <Button variant="outline" size="sm">
-              Filter
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </Button>
-          </div>
         </div>
         
-        <StudentTable schoolId={school?.id} />
+        <StudentTable 
+          schoolId={school?.id} 
+          searchQuery={searchQuery}
+        />
       </div>
     </DashboardLayout>
   );
