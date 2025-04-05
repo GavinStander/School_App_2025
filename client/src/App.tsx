@@ -6,7 +6,9 @@ import AuthPage from "@/pages/auth-page";
 import AdminDashboard from "@/pages/admin-dashboard";
 import SchoolDashboard from "@/pages/school-dashboard";
 import SchoolStudentsPage from "@/pages/school-students-page";
+import SchoolFundraisersPage from "@/pages/school-fundraisers-page";
 import StudentDashboard from "@/pages/student-dashboard";
+import StudentFundraisersPage from "@/pages/student-fundraisers-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 import { queryClient } from "./lib/queryClient";
@@ -34,10 +36,22 @@ function Router() {
         fallbackPath="/school"
       />
       <ProtectedRoute
+        path="/school/fundraisers"
+        roleCheck={(user) => user.role === "school"}
+        component={SchoolFundraisersPage}
+        fallbackPath="/school"
+      />
+      <ProtectedRoute
         path="/student"
         roleCheck={(user) => user.role === "student"}
         component={StudentDashboard}
         fallbackPath="/"
+      />
+      <ProtectedRoute
+        path="/student/fundraisers"
+        roleCheck={(user) => user.role === "student"}
+        component={StudentFundraisersPage}
+        fallbackPath="/student"
       />
       <Route component={NotFound} />
     </Switch>

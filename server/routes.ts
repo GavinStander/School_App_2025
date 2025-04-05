@@ -121,6 +121,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fundraiser routes for schools
+  app.get("/api/school/fundraisers", isAuthenticated, hasRole(UserRole.SCHOOL), async (req, res) => {
+    try {
+      const school = await storage.getSchoolByUserId(req.user.id);
+      if (!school) {
+        return res.status(404).json({ message: "School not found" });
+      }
+
+      const fundraisers = await storage.getFundraisersBySchoolId(school.id);
+      res.json(fundraisers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get fundraisers" });
+    }
+  });
+
+  app.post("/api/school/fundraisers", isAuthenticated, hasRole(UserRole.SCHOOL), async (req, res) => {
+    try {
+      const school = await storage.getSchoolByUserId(req.user.id);
+      if (!school) {
+        return res.status(404).json({ message: "School not found" });
+      }
+
+      const { name, location, eventDate } = req.body;
+      // Convert the date to string for Drizzle compatibility
+      const fundraiser = await storage.createFundraiser({
+        name,
+        location,
+        eventDate: new Date(eventDate).toISOString(),
+        schoolId: school.id,
+        isActive: true
+      });
+
+      res.status(201).json(fundraiser);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create fundraiser" });
+    }
+  });
+
+  // Fundraiser routes for students
+  app.get("/api/student/fundraisers", isAuthenticated, hasRole(UserRole.STUDENT), async (req, res) => {
+    try {
+      const student = await storage.getStudentByUserId(req.user.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+
+      const fundraisers = await storage.getFundraisersBySchoolId(student.schoolId);
+      res.json(fundraisers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get fundraisers" });
+    }
+  });
+
   // Common routes for all authenticated users
   app.get("/api/dashboard/stats", isAuthenticated, async (req, res) => {
     try {

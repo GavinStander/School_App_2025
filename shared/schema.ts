@@ -43,14 +43,11 @@ export const students = pgTable("students", {
 // Fundraisers table
 export const fundraisers = pgTable("fundraisers", {
   id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description"),
-  goal: integer("goal").notNull(),
-  currentAmount: integer("current_amount").default(0).notNull(),
-  startDate: date("start_date").notNull(),
-  endDate: date("end_date").notNull(),
+  name: text("name").notNull(),
+  location: text("location").notNull(), 
   schoolId: integer("school_id").references(() => schools.id).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
+  eventDate: date("event_date").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
