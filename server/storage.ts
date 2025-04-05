@@ -220,15 +220,7 @@ export class DatabaseStorage implements IStorage {
   async getFundraisersBySchoolId(schoolId: number): Promise<Fundraiser[]> {
     try {
       const result = await db
-        .select({
-          id: fundraisers.id,
-          eventName: fundraisers.eventName, // Use the correct field name
-          location: fundraisers.location,
-          schoolId: fundraisers.schoolId,
-          isActive: fundraisers.isActive,
-          eventDate: fundraisers.eventDate,
-          createdAt: fundraisers.createdAt
-        })
+        .select()
         .from(fundraisers)
         .where(eq(fundraisers.schoolId, schoolId))
         .orderBy(desc(fundraisers.eventDate));
@@ -244,15 +236,7 @@ export class DatabaseStorage implements IStorage {
       const [createdFundraiser] = await db
         .insert(fundraisers)
         .values(fundraiser)
-        .returning({
-          id: fundraisers.id,
-          eventName: fundraisers.eventName,
-          location: fundraisers.location,
-          schoolId: fundraisers.schoolId,
-          isActive: fundraisers.isActive,
-          eventDate: fundraisers.eventDate,
-          createdAt: fundraisers.createdAt
-        });
+        .returning();
       return createdFundraiser;
     } catch (error) {
       console.error("Error creating fundraiser:", error);

@@ -51,7 +51,7 @@ export const students = pgTable("students", {
 
 export const fundraisers = pgTable("fundraisers", {
   id: serial("id").primaryKey(),
-  eventName: text("event_name").notNull(),
+  eventName: text("name").notNull(), // Using 'name' column in the database
   location: text("location").notNull(),
   schoolId: integer("school_id").references(() => schools.id).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
