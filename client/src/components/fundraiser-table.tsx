@@ -94,7 +94,7 @@ export default function FundraiserTable({
           <TableBody>
             {displayFundraisers.map((fundraiser) => (
               <TableRow key={fundraiser.id}>
-                <TableCell className="font-medium">{fundraiser.eventName}</TableCell>
+                <TableCell className="font-medium">{fundraiser.name}</TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     <MapPinIcon size={14} className="mr-1" />

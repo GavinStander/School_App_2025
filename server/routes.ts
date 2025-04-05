@@ -163,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Creating fundraiser with:", {
-        eventName: event_name, // eventName in the schema maps to 'name' in DB
+        name: event_name, // We need 'name' instead of 'eventName'
         location,
         eventDate: formattedDate.toISOString().split('T')[0],
         schoolId: school.id,
@@ -173,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the fundraiser with the validated date
       // Using a string formattable date for storage
       const fundraiser = await storage.createFundraiser({
-        eventName: event_name, // eventName in the schema maps to 'name' in DB
+        name: event_name, // name is the field in our schema now
         location,
         eventDate: formattedDate.toISOString().split('T')[0], // Format as YYYY-MM-DD string
         schoolId: school.id,
