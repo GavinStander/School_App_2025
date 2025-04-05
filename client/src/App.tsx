@@ -5,6 +5,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import AdminDashboard from "@/pages/admin-dashboard";
 import SchoolDashboard from "@/pages/school-dashboard";
+import SchoolStudentsPage from "@/pages/school-students-page";
 import StudentDashboard from "@/pages/student-dashboard";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
@@ -25,6 +26,12 @@ function Router() {
         roleCheck={(user) => user.role === "school"}
         component={SchoolDashboard}
         fallbackPath="/student"
+      />
+      <ProtectedRoute
+        path="/school/students"
+        roleCheck={(user) => user.role === "school"}
+        component={SchoolStudentsPage}
+        fallbackPath="/school"
       />
       <ProtectedRoute
         path="/student"
