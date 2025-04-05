@@ -10,8 +10,6 @@ import { eq, and, desc } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPgSimple from "connect-pg-simple";
-import pg from "pg";
-const { Pool } = pg;
 
 const MemoryStore = createMemoryStore(session);
 const PgStore = connectPgSimple(session);
@@ -52,28 +50,11 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    // Use the appropriate session store based on environment
-    // If NEON_DATABASE_URL is available, use PostgreSQL store
-    if (process.env.NEON_DATABASE_URL) {
-      // Create a PostgreSQL connection pool
-      const pgPool = new Pool({
-        connectionString: process.env.NEON_DATABASE_URL,
-        ssl: {
-          rejectUnauthorized: false // For Neon, we need this to connect with SSL
-        }
-      });
-      
-      this.sessionStore = new PgStore({
-        pool: pgPool,
-        createTableIfMissing: true,
-        tableName: 'session' // Default table name
-      });
-    } else {
-      // Fallback to memory store for local development
-      this.sessionStore = new MemoryStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
-      });
-    }
+    // For simplicity, we'll use the memory store for now
+    // This will be lost on server restart, but that's fine for development
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
   }
 
   // User operations

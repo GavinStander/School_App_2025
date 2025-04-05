@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/neon-serverless";
-import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from 'postgres';
 import * as schema from "../shared/schema";
 
 // Use NEON_DATABASE_URL if available, otherwise fallback to DATABASE_URL
@@ -9,5 +9,8 @@ if (!databaseUrl) {
   throw new Error("Database connection URL environment variable is required");
 }
 
-const sql = neon(databaseUrl);
-export const db = drizzle(sql, { schema });
+// Create postgres connection
+const client = postgres(databaseUrl, { ssl: 'require' });
+
+// Create drizzle database instance
+export const db = drizzle(client, { schema });
