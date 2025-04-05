@@ -26,7 +26,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 // Registration schema
 const registerSchema = z.object({
-  role: z.enum([UserRole.ADMIN, UserRole.SCHOOL, UserRole.STUDENT]),
+  role: z.enum([UserRole.SCHOOL, UserRole.STUDENT]),
   email: z.string().email("Please enter a valid email"),
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -211,7 +211,6 @@ export default function AuthPage() {
                               <SelectContent>
                                 <SelectItem value={UserRole.STUDENT}>Student</SelectItem>
                                 <SelectItem value={UserRole.SCHOOL}>School</SelectItem>
-                                <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
