@@ -66,9 +66,15 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
 
   const createFundraiserMutation = useMutation({
     mutationFn: async (values: FundraiserFormValues) => {
+      // Format the date properly as YYYY-MM-DD for the API
+      const formattedDate = values.eventDate instanceof Date 
+        ? format(values.eventDate, 'yyyy-MM-dd') 
+        : undefined;
+        
       const res = await apiRequest("POST", "/api/school/fundraisers", {
-        ...values,
-        eventDate: values.eventDate.toISOString(),
+        name: values.name,
+        location: values.location,
+        eventDate: formattedDate,
       });
       return await res.json() as Fundraiser;
     },
@@ -77,7 +83,12 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
         title: "Success",
         description: "Fundraiser event created successfully",
       });
-      form.reset();
+      // Reset the form completely
+      form.reset({
+        name: "",
+        location: "",
+        eventDate: undefined,
+      });
       setOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/school/fundraisers"] });
       if (onSuccess) onSuccess();

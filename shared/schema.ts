@@ -47,7 +47,7 @@ export const fundraisers = pgTable("fundraisers", {
   location: text("location").notNull(), 
   schoolId: integer("school_id").references(() => schools.id).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
-  eventDate: date("event_date").notNull(),
+  eventDate: text("event_date").notNull(), // Using text type for better compatibility
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

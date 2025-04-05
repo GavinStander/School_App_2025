@@ -208,17 +208,40 @@ export class DatabaseStorage implements IStorage {
 
   // Fundraiser operations
   async getFundraiser(id: number): Promise<Fundraiser | undefined> {
-    const [fundraiser] = await db.select().from(fundraisers).where(eq(fundraisers.id, id));
-    return fundraiser;
+    try {
+      const [fundraiser] = await db.select().from(fundraisers).where(eq(fundraisers.id, id));
+      return fundraiser;
+    } catch (error) {
+      console.error("Error getting fundraiser:", error);
+      return undefined;
+    }
   }
 
   async getFundraisersBySchoolId(schoolId: number): Promise<Fundraiser[]> {
-    return db.select().from(fundraisers).where(eq(fundraisers.schoolId, schoolId));
+    try {
+      const result = await db
+        .select()
+        .from(fundraisers)
+        .where(eq(fundraisers.schoolId, schoolId))
+        .orderBy(desc(fundraisers.eventDate));
+      return result;
+    } catch (error) {
+      console.error("Error getting fundraisers by school ID:", error);
+      return [];
+    }
   }
 
   async createFundraiser(fundraiser: InsertFundraiser): Promise<Fundraiser> {
-    const [createdFundraiser] = await db.insert(fundraisers).values(fundraiser).returning();
-    return createdFundraiser;
+    try {
+      const [createdFundraiser] = await db
+        .insert(fundraisers)
+        .values(fundraiser)
+        .returning();
+      return createdFundraiser;
+    } catch (error) {
+      console.error("Error creating fundraiser:", error);
+      throw error;
+    }
   }
 }
 

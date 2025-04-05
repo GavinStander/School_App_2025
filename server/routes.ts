@@ -144,11 +144,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { name, location, eventDate } = req.body;
-      // Convert the date correctly for Drizzle
+      // Ensure we're passing a valid date
+      let formattedDate;
+      try {
+        if (typeof eventDate === 'string') {
+          formattedDate = new Date(eventDate);
+          
+          // Check if it's a valid date
+          if (isNaN(formattedDate.getTime())) {
+            return res.status(400).json({ message: "Invalid date format" });
+          }
+        } else {
+          return res.status(400).json({ message: "Event date is required" });
+        }
+      } catch (error) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+
+      // Create the fundraiser with the validated date
+      // Using a string formattable date for storage
       const fundraiser = await storage.createFundraiser({
         name,
         location,
-        eventDate: new Date(eventDate), // Pass the Date object directly
+        eventDate: formattedDate.toISOString().split('T')[0], // Format as YYYY-MM-DD string
         schoolId: school.id,
         isActive: true
       });
