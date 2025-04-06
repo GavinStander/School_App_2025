@@ -5,6 +5,7 @@ import { Loader2, Eye, Mail, Search, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { Link } from "wouter";
 
 interface StudentTableProps {
   limit?: number;
@@ -31,6 +32,7 @@ export default function StudentTable({
   
   const { data: students, isLoading } = useQuery<any[]>({
     queryKey,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Filter students based on search query
@@ -82,9 +84,9 @@ export default function StudentTable({
       {showViewAll && (
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">Latest Students</h2>
-          <a href={viewAllLink} className="text-primary hover:text-indigo-700 text-sm font-medium">
+          <Link href={viewAllLink} className="text-primary hover:text-indigo-700 text-sm font-medium">
             View all
-          </a>
+          </Link>
         </div>
       )}
       

@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import AdminDashboard from "@/pages/admin-dashboard";
+import AdminStudentsPage from "@/pages/admin-students-page";
 import SchoolDashboard from "@/pages/school-dashboard";
 import SchoolStudentsPage from "@/pages/school-students-page";
 import SchoolFundraisersPage from "@/pages/school-fundraisers-page";
@@ -23,6 +24,12 @@ function Router() {
         roleCheck={(user) => user.role === "admin"}
         component={AdminDashboard}
         fallbackPath="/school"
+      />
+      <ProtectedRoute
+        path="/admin/students"
+        roleCheck={(user) => user.role === "admin"}
+        component={AdminStudentsPage}
+        fallbackPath="/"
       />
       <ProtectedRoute
         path="/school"

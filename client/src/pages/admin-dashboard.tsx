@@ -80,7 +80,7 @@ export default function AdminDashboard() {
       
       {/* Latest Students */}
       <div>
-        <StudentTable limit={3} showViewAll={true} />
+        <StudentTable limit={5} showViewAll={true} viewAllLink="/admin/students" />
       </div>
     </DashboardLayout>
   );
