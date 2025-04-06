@@ -28,15 +28,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, User as UserIcon, School, MapPin, Briefcase, Save } from "lucide-react";
+import { School, MapPin, Save } from "lucide-react";
 
 // School profile form schema
 const profileFormSchema = z.object({
   name: z.string().min(2, "School name must be at least 2 characters"),
   adminName: z.string().min(2, "Admin name must be at least 2 characters"),
   address: z.string().optional(),
-  email: z.string().email("Invalid email address").optional(),
-  username: z.string().min(3, "Username must be at least 3 characters").optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -78,8 +76,6 @@ export default function SchoolProfilePage() {
       name: "",
       adminName: "",
       address: "",
-      email: "",
-      username: "",
     },
   });
 
@@ -90,8 +86,6 @@ export default function SchoolProfilePage() {
         name: schoolInfo.name || "",
         adminName: schoolInfo.adminName || "",
         address: schoolInfo.address || "",
-        email: schoolInfo.user?.email || "",
-        username: schoolInfo.user?.username || "",
       });
     }
   }, [schoolInfo, form]);
@@ -136,7 +130,7 @@ export default function SchoolProfilePage() {
           <CardHeader>
             <CardTitle className="text-2xl">School Profile</CardTitle>
             <CardDescription>
-              Manage your school's information and account settings
+              Manage your school's information
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -197,57 +191,6 @@ export default function SchoolProfilePage() {
                           </FormControl>
                           <FormDescription>
                             Your physical school address
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium flex items-center mt-8">
-                      <UserIcon className="mr-2 h-5 w-5" /> Account Information
-                    </h3>
-                    <Separator />
-                    
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email Address</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Email" 
-                              {...field} 
-                              value={field.value || ""}
-                              disabled
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Your email address cannot be changed
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Username</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Username" 
-                              {...field} 
-                              value={field.value || ""}
-                              disabled
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Your username cannot be changed
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
