@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/dashboard-layout";
 import StudentTable from "@/components/student-table";
 import EditSchoolForm from "@/components/edit-school-form";
+import CreateNotificationForm from "@/components/create-notification-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, MessageCircle } from "lucide-react";
 
 export default function SchoolDashboard() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -140,6 +141,16 @@ export default function SchoolDashboard() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">Registered Students</h2>
+          <div className="flex items-center space-x-2">
+            <CreateNotificationForm 
+              triggerLabel={
+                <div className="flex items-center space-x-2">
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Notify Students</span>
+                </div>
+              }
+            />
+          </div>
         </div>
         
         <StudentTable 

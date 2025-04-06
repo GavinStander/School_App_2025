@@ -1,9 +1,10 @@
 import { db } from "./db";
 import { 
-  users, schools, students, fundraisers, studentFundraisers,
+  users, schools, students, fundraisers, studentFundraisers, notifications,
   type User, type InsertUser, type School, type InsertSchool,
   type Student, type InsertStudent, type Fundraiser, 
   type InsertFundraiser, type StudentFundraiser, type InsertStudentFundraiser,
+  type Notification, type InsertNotification,
   UserRole
 } from "@shared/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -42,6 +43,13 @@ export interface IStorage {
   getFundraiser(id: number): Promise<Fundraiser | undefined>;
   getFundraisersBySchoolId(schoolId: number): Promise<Fundraiser[]>;
   createFundraiser(fundraiser: InsertFundraiser): Promise<Fundraiser>;
+  
+  // Notification operations
+  getNotificationsByUserId(userId: number): Promise<Notification[]>;
+  getUnreadNotificationsByUserId(userId: number): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(notificationId: number): Promise<Notification>;
+  markAllNotificationsAsRead(userId: number): Promise<void>;
   
   // Session store
   sessionStore: session.Store;
@@ -252,6 +260,76 @@ export class DatabaseStorage implements IStorage {
       return result[0] as Fundraiser;
     } catch (error) {
       console.error("Error creating fundraiser:", error);
+      throw error;
+    }
+  }
+
+  // Notification operations
+  async getNotificationsByUserId(userId: number): Promise<Notification[]> {
+    try {
+      return db.select()
+        .from(notifications)
+        .where(eq(notifications.userId, userId))
+        .orderBy(desc(notifications.createdAt));
+    } catch (error) {
+      console.error("Error getting notifications:", error);
+      return [];
+    }
+  }
+
+  async getUnreadNotificationsByUserId(userId: number): Promise<Notification[]> {
+    try {
+      return db.select()
+        .from(notifications)
+        .where(and(
+          eq(notifications.userId, userId),
+          eq(notifications.read, false)
+        ))
+        .orderBy(desc(notifications.createdAt));
+    } catch (error) {
+      console.error("Error getting unread notifications:", error);
+      return [];
+    }
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    try {
+      const [createdNotification] = await db
+        .insert(notifications)
+        .values(notification)
+        .returning();
+      return createdNotification;
+    } catch (error) {
+      console.error("Error creating notification:", error);
+      throw error;
+    }
+  }
+
+  async markNotificationAsRead(notificationId: number): Promise<Notification> {
+    try {
+      const [updatedNotification] = await db
+        .update(notifications)
+        .set({ read: true })
+        .where(eq(notifications.id, notificationId))
+        .returning();
+      return updatedNotification;
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      throw error;
+    }
+  }
+
+  async markAllNotificationsAsRead(userId: number): Promise<void> {
+    try {
+      await db
+        .update(notifications)
+        .set({ read: true })
+        .where(and(
+          eq(notifications.userId, userId),
+          eq(notifications.read, false)
+        ));
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
       throw error;
     }
   }

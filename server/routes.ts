@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { UserRole } from "@shared/schema";
+import { sendNotificationEmail } from "./email-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -180,6 +181,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: true
       });
 
+      // Find students associated with this school and create notifications for them
+      const schoolStudents = await storage.getStudentsWithUserInfoBySchoolId(school.id);
+      
+      const notificationTitle = "New Fundraiser Event";
+      const notificationMessage = `Your school has added a new fundraiser: ${fundraiser.name} on ${fundraiser.eventDate} at ${fundraiser.location}`;
+      
+      // Create notifications for each student and send emails
+      for (const student of schoolStudents) {
+        // Create in-app notification
+        await storage.createNotification({
+          userId: student.userId,
+          title: notificationTitle,
+          message: notificationMessage,
+          type: "info",
+          read: false
+        });
+        
+        // Log notification for audit purposes (simulating email notification)
+        if (student.email) {
+          // Don't await - process asynchronously
+          sendNotificationEmail(
+            student.email,
+            notificationTitle,
+            notificationMessage
+          ).catch(err => {
+            console.error('Error processing notification:', err);
+          });
+        }
+      }
+
       res.status(201).json(fundraiser);
     } catch (error) {
       res.status(500).json({ message: "Failed to create fundraiser" });
@@ -213,6 +244,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to get dashboard stats" });
+    }
+  });
+
+  // Notification routes
+  app.get("/api/notifications", isAuthenticated, async (req, res) => {
+    try {
+      const notifications = await storage.getNotificationsByUserId(req.user.id);
+      res.json(notifications);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get notifications" });
+    }
+  });
+
+  app.get("/api/notifications/unread", isAuthenticated, async (req, res) => {
+    try {
+      const notifications = await storage.getUnreadNotificationsByUserId(req.user.id);
+      res.json(notifications);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get unread notifications" });
+    }
+  });
+
+  app.post("/api/notifications", isAuthenticated, async (req, res) => {
+    try {
+      const { title, message, type, recipientId } = req.body;
+      const userId = recipientId || req.user.id;
+      
+      // Create a notification
+      const notification = await storage.createNotification({
+        title,
+        message,
+        type,
+        userId: userId,
+        read: false
+      });
+      
+      // Log notification for audit purposes (simulating email notification)
+      if (recipientId && recipientId !== req.user.id) {
+        // Get recipient user to find their email
+        const recipient = await storage.getUser(recipientId);
+        
+        if (recipient && recipient.email) {
+          // Process notification asynchronously (don't await)
+          sendNotificationEmail(
+            recipient.email,
+            title,
+            message
+          ).catch(err => {
+            console.error('Error processing notification:', err);
+          });
+        }
+      }
+      
+      res.status(201).json(notification);
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      res.status(500).json({ message: "Failed to create notification" });
+    }
+  });
+
+  app.put("/api/notifications/:id/read", isAuthenticated, async (req, res) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      const notification = await storage.markNotificationAsRead(notificationId);
+      res.json(notification);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  app.put("/api/notifications/read-all", isAuthenticated, async (req, res) => {
+    try {
+      await storage.markAllNotificationsAsRead(req.user.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark all notifications as read" });
     }
   });
 

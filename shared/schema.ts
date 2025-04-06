@@ -66,10 +66,20 @@ export const studentFundraisers = pgTable("student_fundraisers", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull().default("info"), // info, success, warning, error
+  read: boolean("read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // -----------------------------
 // Relations
 // -----------------------------
-export const usersRelations = relations(users, ({ one }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   school: one(schools, {
     fields: [users.id],
     references: [schools.userId],
@@ -78,6 +88,7 @@ export const usersRelations = relations(users, ({ one }) => ({
     fields: [users.id],
     references: [students.userId],
   }),
+  notifications: many(notifications),
 }));
 
 export const schoolsRelations = relations(schools, ({ one, many }) => ({
@@ -120,6 +131,13 @@ export const studentFundraisersRelations = relations(studentFundraisers, ({ one 
   }),
 }));
 
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
 // -----------------------------
 // Zod Insert Schemas
 // -----------------------------
@@ -146,6 +164,11 @@ export const insertFundraiserSchema = createInsertSchema(fundraisers).omit({
 });
 
 export const insertStudentFundraiserSchema = createInsertSchema(studentFundraisers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
   createdAt: true,
 });
@@ -183,3 +206,6 @@ export type InsertStudentFundraiser = z.infer<typeof insertStudentFundraiserSche
 
 export type SchoolRegister = z.infer<typeof schoolRegisterSchema>;
 export type StudentRegister = z.infer<typeof studentRegisterSchema>;
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
