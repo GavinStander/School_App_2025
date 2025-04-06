@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Loader2, Eye } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 
 interface SchoolTableProps {
   limit?: number;
@@ -38,9 +39,9 @@ export default function SchoolTable({ limit, showViewAll = false, viewAllLink = 
       {showViewAll && (
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">Recent Schools</h2>
-          <a href={viewAllLink} className="text-primary hover:text-indigo-700 text-sm font-medium">
+          <Link href={viewAllLink} className="text-primary hover:text-indigo-700 text-sm font-medium">
             View all
-          </a>
+          </Link>
         </div>
       )}
       

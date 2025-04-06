@@ -6,9 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
 export default function AdminDashboard() {
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading } = useQuery<{ totalSchools: number, totalStudents: number }>({
     queryKey: ["/api/dashboard/stats"],
   });
+  
+  const dashboardStats = stats || { totalSchools: 0, totalStudents: 0 };
 
   return (
     <DashboardLayout title="Admin Dashboard" role="admin">
@@ -27,7 +29,7 @@ export default function AdminDashboard() {
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin mt-1" />
                 ) : (
-                  <p className="text-3xl font-bold text-gray-900">{stats?.totalSchools || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900">{dashboardStats.totalSchools}</p>
                 )}
               </div>
             </div>
@@ -49,7 +51,7 @@ export default function AdminDashboard() {
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin mt-1" />
                 ) : (
-                  <p className="text-3xl font-bold text-gray-900">{stats?.totalStudents || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900">{dashboardStats.totalStudents}</p>
                 )}
               </div>
             </div>
@@ -75,7 +77,7 @@ export default function AdminDashboard() {
       
       {/* Recent Schools */}
       <div className="mb-8">
-        <SchoolTable limit={3} showViewAll={true} />
+        <SchoolTable limit={5} showViewAll={true} viewAllLink="/admin/schools" />
       </div>
       
       {/* Latest Students */}
