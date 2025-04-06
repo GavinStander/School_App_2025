@@ -99,15 +99,12 @@ export default function DashboardSidebar({
             <Link 
               key={item.path}
               href={item.path}
+              className={cn(
+                "block px-4 py-2 text-gray-400 hover:bg-gray-800 hover:text-white transition",
+                location === item.path && "text-gray-200 bg-gray-800"
+              )}
             >
-              <a 
-                className={cn(
-                  "block px-4 py-2 text-gray-400 hover:bg-gray-800 hover:text-white transition",
-                  location === item.path && "text-gray-200 bg-gray-800"
-                )}
-              >
-                <i className={`fas fa-${item.icon} w-5 mr-2`}></i> {item.label}
-              </a>
+              <i className={`fas fa-${item.icon} w-5 mr-2`}></i> {item.label}
             </Link>
           ))}
         </div>

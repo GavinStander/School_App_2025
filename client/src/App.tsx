@@ -7,6 +7,7 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import SchoolDashboard from "@/pages/school-dashboard";
 import SchoolStudentsPage from "@/pages/school-students-page";
 import SchoolFundraisersPage from "@/pages/school-fundraisers-page";
+import SchoolProfilePage from "@/pages/school-profile-page";
 import StudentDashboard from "@/pages/student-dashboard";
 import StudentFundraisersPage from "@/pages/student-fundraisers-page";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -39,6 +40,12 @@ function Router() {
         path="/school/fundraisers"
         roleCheck={(user) => user.role === "school"}
         component={SchoolFundraisersPage}
+        fallbackPath="/school"
+      />
+      <ProtectedRoute
+        path="/school/profile"
+        roleCheck={(user) => user.role === "school"}
+        component={SchoolProfilePage}
         fallbackPath="/school"
       />
       <ProtectedRoute
