@@ -24,6 +24,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     res.status(403).json({ message: "Forbidden" });
   };
+  
+  // Middleware to check if user is a school or admin
+  const isSchoolOrAdmin = (req, res, next) => {
+    if (req.isAuthenticated() && 
+        (req.user.role === UserRole.SCHOOL || req.user.role === UserRole.ADMIN)) {
+      return next();
+    }
+    res.status(403).json({ message: "Forbidden: School or Admin access required" });
+  };
 
   // Get current user with extended info
   app.get("/api/user/info", isAuthenticated, async (req, res) => {
@@ -313,6 +322,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error creating notification:', error);
       res.status(500).json({ message: "Failed to create notification" });
+    }
+  });
+  
+  // Mass notification endpoint for sending to all students in a school
+  app.post("/api/notifications/mass", isAuthenticated, isSchoolOrAdmin, async (req, res) => {
+    try {
+      const { title, message, type, schoolId } = req.body;
+      
+      // Security check - if school user, they can only send to their own school
+      if (req.user.role === UserRole.SCHOOL) {
+        const schoolUser = await storage.getSchoolByUserId(req.user.id);
+        if (!schoolUser || schoolUser.id !== schoolId) {
+          return res.status(403).json({ message: "You can only send notifications to students at your school" });
+        }
+      }
+      
+      console.log('Creating mass notification for school:', {
+        title,
+        message,
+        type,
+        schoolId,
+        senderUserId: req.user.id
+      });
+      
+      // Get all students for this school
+      const students = await storage.getStudentsWithUserInfoBySchoolId(schoolId);
+      console.log(`Found ${students.length} students for schoolId ${schoolId}`);
+      
+      if (students.length === 0) {
+        return res.status(404).json({ message: "No students found for this school" });
+      }
+      
+      // Create notifications for each student
+      const notifications = [];
+      
+      for (const student of students) {
+        const notification = await storage.createNotification({
+          title,
+          message,
+          type,
+          userId: student.user.id,
+          read: false
+        });
+        
+        notifications.push(notification);
+        
+        // Send email notification (simulated)
+        if (student.user.email) {
+          // Process notification asynchronously
+          sendNotificationEmail(
+            student.user.email,
+            title,
+            message
+          ).catch(err => {
+            console.error(`Error sending email to student ${student.user.id}:`, err);
+          });
+        }
+      }
+      
+      console.log(`Successfully created ${notifications.length} notifications`);
+      
+      res.status(201).json({ 
+        success: true, 
+        count: notifications.length 
+      });
+    } catch (error) {
+      console.error('Error creating mass notifications:', error);
+      res.status(500).json({ message: "Failed to send mass notifications" });
     }
   });
 

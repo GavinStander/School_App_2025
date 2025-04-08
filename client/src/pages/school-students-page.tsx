@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/dashboard-layout";
 import StudentTable from "@/components/student-table";
+import MassNotificationForm from "@/components/mass-notification-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
@@ -67,6 +68,13 @@ export default function SchoolStudentsPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">All Students</h2>
+          {school && (
+            <MassNotificationForm 
+              schoolId={school.id}
+              schoolName={school.name}
+              triggerLabel="Notify All Students"
+            />
+          )}
         </div>
         
         {/* Student table with built-in search */}
