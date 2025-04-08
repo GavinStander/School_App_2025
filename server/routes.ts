@@ -357,26 +357,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create notifications for each student
       const notifications = [];
       
+      console.log('Students data structure:', JSON.stringify(students[0], null, 2));
+      
       for (const student of students) {
+        // Handle both student.user.id and student.userId (depending on the structure)
+        const studentUserId = student.user?.id || student.userId;
+        
+        console.log('Creating notification for student:', {
+          studentId: student.id,
+          userId: studentUserId,
+        });
+        
         const notification = await storage.createNotification({
           title,
           message,
           type,
-          userId: student.user.id,
+          userId: studentUserId,
           read: false
         });
         
         notifications.push(notification);
         
         // Send email notification (simulated)
-        if (student.user.email) {
+        const studentEmail = student.user?.email || student.email;
+        if (studentEmail) {
           // Process notification asynchronously
           sendNotificationEmail(
-            student.user.email,
+            studentEmail,
             title,
             message
           ).catch(err => {
-            console.error(`Error sending email to student ${student.user.id}:`, err);
+            console.error(`Error sending email to student ${studentUserId}:`, err);
           });
         }
       }
