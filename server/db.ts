@@ -2,8 +2,8 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from 'postgres';
 import * as schema from "../shared/schema";
 
-// Use DATABASE_URL consistently for all operations
-const databaseUrl = process.env.DATABASE_URL;
+// Use NEON_DATABASE_URL for database connection
+const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error("Database connection URL environment variable is required");
