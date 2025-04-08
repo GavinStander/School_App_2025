@@ -60,13 +60,12 @@ export class DatabaseStorage implements IStorage {
 
   constructor() {
     // Use PostgreSQL session store for persistent sessions
-    const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
     this.sessionStore = new PgStore({
-      conString: databaseUrl,
+      conString: process.env.DATABASE_URL,
       createTableIfMissing: true,
       tableName: 'session'
     });
-    console.log("Using PostgreSQL session store with database connection");
+    console.log("Using PostgreSQL session store with DATABASE_URL");
   }
 
   // User operations
