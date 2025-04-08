@@ -271,6 +271,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { title, message, type, recipientId } = req.body;
       const userId = recipientId || req.user.id;
       
+      console.log('Creating notification:', {
+        title,
+        message,
+        type,
+        recipientId,
+        userId,
+        currentUser: req.user.id
+      });
+      
       // Create a notification
       const notification = await storage.createNotification({
         title,
@@ -280,10 +289,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         read: false
       });
       
+      console.log('Notification created successfully:', notification);
+      
       // Log notification for audit purposes (simulating email notification)
       if (recipientId && recipientId !== req.user.id) {
         // Get recipient user to find their email
         const recipient = await storage.getUser(recipientId);
+        console.log('Recipient user:', recipient);
         
         if (recipient && recipient.email) {
           // Process notification asynchronously (don't await)

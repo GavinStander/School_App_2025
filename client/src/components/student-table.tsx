@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
+import CreateNotificationForm from "@/components/create-notification-form";
 
 interface StudentTableProps {
   limit?: number;
@@ -169,9 +170,13 @@ export default function StudentTable({
                     <Button variant="ghost" size="sm" className="text-primary hover:text-indigo-800 p-0 h-auto">
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 p-0 h-auto">
-                      <Mail className="h-4 w-4" />
-                    </Button>
+                    <CreateNotificationForm 
+                      recipientId={student.user.id}
+                      recipientName={student.user.username}
+                      triggerLabel={
+                        <Mail className="h-4 w-4 text-gray-500 hover:text-gray-700" />
+                      }
+                    />
                   </td>
                 </tr>
               ))}

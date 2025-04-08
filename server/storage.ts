@@ -284,13 +284,18 @@ export class DatabaseStorage implements IStorage {
 
   async getUnreadNotificationsByUserId(userId: number): Promise<Notification[]> {
     try {
-      return db.select()
+      console.log('Fetching unread notifications for user ID:', userId);
+      
+      const unreadNotifications = await db.select()
         .from(notifications)
         .where(and(
           eq(notifications.userId, userId),
           eq(notifications.read, false)
         ))
         .orderBy(desc(notifications.createdAt));
+        
+      console.log('Unread notifications found:', unreadNotifications);
+      return unreadNotifications;
     } catch (error) {
       console.error("Error getting unread notifications:", error);
       return [];
