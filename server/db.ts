@@ -9,13 +9,9 @@ if (!databaseUrl) {
   throw new Error("Database connection URL environment variable is required");
 }
 
-// Create postgres connection with explicit schema
+// Create postgres connection
 const client = postgres(databaseUrl, { 
-  ssl: 'require',
-  // Set schema search path explicitly
-  connection: {
-    options: `--search_path=public`
-  }
+  ssl: 'require'
 });
 
 // For debugging
