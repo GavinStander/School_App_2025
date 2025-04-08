@@ -2,6 +2,17 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { sql } from 'drizzle-orm';
+import { scrypt, randomBytes } from 'crypto';
+import { promisify } from 'util';
+
+const scryptAsync = promisify(scrypt);
+
+// This should match the hashPassword function in server/auth.ts
+async function hashPassword(password) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64));
+  return `${buf.toString("hex")}.${salt}`;
+}
 
 const createAdmin = async () => {
   const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
@@ -15,6 +26,10 @@ const createAdmin = async () => {
   const db = drizzle(client);
   
   try {
+    // Hash password for all users
+    const hashedPassword = await hashPassword('123456');
+    console.log('Password hashed for all test users');
+    
     // Check if admin user already exists
     const adminCheck = await db.execute(sql`
       SELECT * FROM users WHERE email = 'admin@example.com' OR username = 'admin'
@@ -24,18 +39,18 @@ const createAdmin = async () => {
       console.log('Admin user already exists. Updating password...');
       await db.execute(sql`
         UPDATE users 
-        SET password = '123456' 
+        SET password = ${hashedPassword}
         WHERE email = 'admin@example.com' OR username = 'admin'
       `);
-      console.log('Admin password updated to "123456"');
+      console.log('Admin password updated');
     } else {
       console.log('Creating admin user...');
       // Create admin user
       await db.execute(sql`
         INSERT INTO users (email, username, password, role)
-        VALUES ('admin@example.com', 'admin', '123456', 'admin')
+        VALUES ('admin@example.com', 'admin', ${hashedPassword}, 'admin')
       `);
-      console.log('Admin user created with email: admin@example.com, password: 123456');
+      console.log('Admin user created with email: admin@example.com');
     }
 
     // Check if school user exists
@@ -47,16 +62,16 @@ const createAdmin = async () => {
       console.log('School user already exists. Updating password...');
       await db.execute(sql`
         UPDATE users 
-        SET password = '123456' 
+        SET password = ${hashedPassword}
         WHERE email = 'school@example.com' OR username = 'schooluser'
       `);
-      console.log('School user password updated to "123456"');
+      console.log('School user password updated');
     } else {
       // Create school user
       console.log('Creating school user...');
       const schoolUser = await db.execute(sql`
         INSERT INTO users (email, username, password, role)
-        VALUES ('school@example.com', 'schooluser', '123456', 'school')
+        VALUES ('school@example.com', 'schooluser', ${hashedPassword}, 'school')
         RETURNING id
       `);
       
@@ -68,7 +83,7 @@ const createAdmin = async () => {
         VALUES ('Example School', 'School Admin', ${schoolUserId})
       `);
       
-      console.log('School user created with email: school@example.com, password: 123456');
+      console.log('School user created with email: school@example.com');
     }
 
     // Check if student user exists
@@ -80,10 +95,10 @@ const createAdmin = async () => {
       console.log('Student user already exists. Updating password...');
       await db.execute(sql`
         UPDATE users 
-        SET password = '123456' 
+        SET password = ${hashedPassword}
         WHERE email = 'test@example.com' OR username = 'testuser'
       `);
-      console.log('Student user password updated to "123456"');
+      console.log('Student user password updated');
     } else {
       // Get the first school
       const schoolsResult = await db.execute(sql`
@@ -101,7 +116,7 @@ const createAdmin = async () => {
       console.log('Creating student user...');
       const studentUser = await db.execute(sql`
         INSERT INTO users (email, username, password, role)
-        VALUES ('test@example.com', 'testuser', '123456', 'student')
+        VALUES ('test@example.com', 'testuser', ${hashedPassword}, 'student')
         RETURNING id
       `);
       
@@ -113,10 +128,10 @@ const createAdmin = async () => {
         VALUES (${schoolId}, ${studentUserId})
       `);
       
-      console.log('Student user created with email: test@example.com, password: 123456');
+      console.log('Student user created with email: test@example.com');
     }
 
-    console.log('Test accounts setup complete!');
+    console.log('Test accounts setup complete! All passwords set to "123456"');
   } catch (error) {
     console.error('Error setting up test accounts:', error);
   } finally {
@@ -124,4 +139,4 @@ const createAdmin = async () => {
   }
 };
 
-createAdmin();
+createAdmin().catch(console.error);
