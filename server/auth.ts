@@ -23,10 +23,18 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  // Check if the stored password contains a salt (has a dot separator)
+  if (stored.includes(".")) {
+    const [hashed, salt] = stored.split(".");
+    const hashedBuf = Buffer.from(hashed, "hex");
+    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    return timingSafeEqual(hashedBuf, suppliedBuf);
+  } else {
+    // For testing/development purpose only - direct comparison
+    // This is not secure and should be removed in production
+    console.log("Warning: Using direct password comparison - not secure for production!");
+    return supplied === stored;
+  }
 }
 
 export function setupAuth(app: Express) {
