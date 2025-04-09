@@ -112,7 +112,7 @@ export default function FundraiserCardGrid({
               <CardDescription>
                 <div className="flex items-center mt-1">
                   <CalendarIcon size={14} className="mr-1" />
-                  {format(new Date(fundraiser.eventDate), "PPP")}
+                  {fundraiser.eventDate ? format(new Date(fundraiser.eventDate), "PPP") : "Date not set"}
                 </div>
               </CardDescription>
             </CardHeader>

@@ -80,7 +80,7 @@ export default function FundraiserDetailsDialog({
                   <div>
                     <p className="text-sm font-medium">Date</p>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(fundraiser?.eventDate || ""), "PPP")}
+                      {fundraiser?.eventDate ? format(new Date(fundraiser.eventDate), "PPP") : "Date not set"}
                     </p>
                   </div>
                 </div>
@@ -125,7 +125,10 @@ export default function FundraiserDetailsDialog({
                 <h4 className="text-sm font-medium mb-2">Description</h4>
                 <p className="text-sm text-muted-foreground">
                   {/* If we add a description field in the future */}
-                  This is a fundraising event organized by {school?.name}. Join us on {format(new Date(fundraiser?.eventDate || ""), "PPP")} at {fundraiser?.location} to support our cause.
+                  This is a fundraising event organized by {school?.name}. 
+                  {fundraiser?.eventDate ? 
+                    ` Join us on ${format(new Date(fundraiser.eventDate), "PPP")} at ${fundraiser?.location} to support our cause.` : 
+                    " Event details coming soon."}
                 </p>
               </div>
             </>
