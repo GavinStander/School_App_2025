@@ -3,6 +3,7 @@ import DashboardLayout from "@/components/dashboard-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import FundraiserCardGrid from "@/components/fundraiser-card-grid";
 
 export default function StudentDashboard() {
   const { data: userInfo, isLoading } = useQuery({
@@ -51,21 +52,16 @@ export default function StudentDashboard() {
         </CardContent>
       </Card>
       
-      {/* My Fundraisers */}
+      {/* School Fundraisers */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">My Fundraisers</h2>
-          <Button>
-            Join New Fundraiser
+          <h2 className="text-lg font-bold text-gray-900">School Fundraisers</h2>
+          <Button variant="outline" asChild>
+            <a href="/student/fundraisers">View All</a>
           </Button>
         </div>
         
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-500">You haven't joined any fundraisers yet.</p>
-          <Button className="mt-4">
-            Browse Available Fundraisers
-          </Button>
-        </div>
+        <FundraiserCardGrid limit={3} showHeader={false} />
       </div>
       
       {/* School Updates */}

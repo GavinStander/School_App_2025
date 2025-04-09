@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Fundraiser } from "@shared/schema";
 import { format } from "date-fns";
-import { CalendarIcon, MapPinIcon } from "lucide-react";
+import { CalendarIcon, MapPinIcon, InfoIcon } from "lucide-react";
 
 import {
   Table,
@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import FundraiserDetailsDialog from "./fundraiser-details-dialog";
 
 interface FundraiserTableProps {
   limit?: number;
@@ -89,6 +91,7 @@ export default function FundraiserTable({
               <TableHead>Location</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -111,6 +114,17 @@ export default function FundraiserTable({
                   <Badge variant={fundraiser.isActive ? "default" : "secondary"}>
                     {fundraiser.isActive ? "Active" : "Inactive"}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  <FundraiserDetailsDialog 
+                    fundraiserId={fundraiser.id}
+                    trigger={
+                      <Button variant="outline" size="sm">
+                        <InfoIcon className="h-4 w-4 mr-1" />
+                        Details
+                      </Button>
+                    }
+                  />
                 </TableCell>
               </TableRow>
             ))}

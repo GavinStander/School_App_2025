@@ -3,19 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Fundraiser } from "@shared/schema";
-import { format } from "date-fns";
-import { CalendarIcon, MapPinIcon, SchoolIcon, UsersIcon } from "lucide-react";
+import { SchoolIcon, UsersIcon } from "lucide-react";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import FundraiserCardGrid from "@/components/fundraiser-card-grid";
 
 export default function StudentFundraisersPage() {
   const { user } = useAuth();
@@ -78,60 +69,9 @@ export default function StudentFundraisersPage() {
         </div>
 
         {/* Fundraisers */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming Events</CardTitle>
-            <CardDescription>All fundraising events at your school</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
-            ) : fundraisers && fundraisers.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Event Name</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {fundraisers.map((fundraiser) => (
-                    <TableRow key={fundraiser.id}>
-                      <TableCell className="font-medium">{fundraiser.name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <MapPinIcon size={14} className="mr-1" />
-                          {fundraiser.location}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <CalendarIcon size={14} className="mr-1" />
-                          {format(new Date(fundraiser.eventDate), "PPP")}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={fundraiser.isActive ? "default" : "secondary"}>
-                          {fundraiser.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-6 text-muted-foreground">
-                <p>No fundraising events have been created by your school yet.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="pt-4">
+          <FundraiserCardGrid showHeader={false} />
+        </div>
       </div>
     </DashboardLayout>
   );

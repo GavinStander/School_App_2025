@@ -422,6 +422,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to mark all notifications as read" });
     }
   });
+  
+  // Get single fundraiser by ID
+  app.get("/api/fundraisers/:id", isAuthenticated, async (req, res) => {
+    try {
+      const fundraiserId = parseInt(req.params.id);
+      
+      if (isNaN(fundraiserId)) {
+        return res.status(400).json({ message: "Invalid fundraiser ID" });
+      }
+      
+      const fundraiser = await storage.getFundraiser(fundraiserId);
+      
+      if (!fundraiser) {
+        return res.status(404).json({ message: "Fundraiser not found" });
+      }
+      
+      res.json(fundraiser);
+    } catch (error) {
+      console.error("Error getting fundraiser details:", error);
+      res.status(500).json({ message: "Could not retrieve fundraiser details" });
+    }
+  });
+  
+  // Get school by ID
+  app.get("/api/schools/:id", isAuthenticated, async (req, res) => {
+    try {
+      const schoolId = parseInt(req.params.id);
+      
+      if (isNaN(schoolId)) {
+        return res.status(400).json({ message: "Invalid school ID" });
+      }
+      
+      const school = await storage.getSchool(schoolId);
+      
+      if (!school) {
+        return res.status(404).json({ message: "School not found" });
+      }
+      
+      res.json(school);
+    } catch (error) {
+      console.error("Error getting school details:", error);
+      res.status(500).json({ message: "Could not retrieve school details" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
