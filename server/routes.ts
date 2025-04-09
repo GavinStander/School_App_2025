@@ -671,6 +671,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Could not retrieve ticket purchases" });
     }
   });
+  
+  // Test endpoint to create a ticket purchase (for development only)
+  app.post("/api/test/create-ticket-purchase", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.role !== UserRole.STUDENT) {
+        return res.status(403).json({ message: "Only students can create test ticket purchases" });
+      }
+      
+      const { fundraiserId, quantity, amount } = req.body;
+      if (!fundraiserId || !quantity || !amount) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const student = await storage.getStudentByUserId(req.user.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student record not found" });
+      }
+      
+      // Create a test ticket purchase
+      const ticketPurchase = await storage.createTicketPurchase({
+        fundraiserId: parseInt(fundraiserId, 10),
+        studentId: student.id,
+        customerName: req.user.username || "Test Customer",
+        customerEmail: req.user.email || "test@example.com",
+        customerPhone: null,
+        quantity: parseInt(quantity, 10),
+        amount: parseInt(amount, 10) * 100, // Convert to cents
+        paymentIntentId: `test_pi_${Date.now()}`,
+        paymentStatus: "completed"
+      });
+      
+      res.status(201).json({
+        message: "Test ticket purchase created successfully",
+        ticketPurchase
+      });
+    } catch (error) {
+      console.error("Error creating test ticket purchase:", error);
+      res.status(500).json({ message: "Failed to create test ticket purchase" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
