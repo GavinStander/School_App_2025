@@ -163,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Received fundraiser data:", req.body);
-      const { event_name, location, eventDate } = req.body;
+      const { event_name, location, eventDate, price } = req.body;
       // Ensure we're passing a valid date
       let formattedDate;
       try {
@@ -181,10 +181,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid date format" });
       }
 
+      // Validate price
+      let priceInCents = 1000; // Default to $10.00
+      if (price) {
+        priceInCents = parseInt(price, 10);
+        if (isNaN(priceInCents) || priceInCents <= 0) {
+          return res.status(400).json({ message: "Price must be a positive number" });
+        }
+      }
+
       console.log("Creating fundraiser with:", {
         name: event_name, // We need 'name' instead of 'eventName'
         location,
         eventDate: formattedDate.toISOString().split('T')[0],
+        price: priceInCents,
         schoolId: school.id,
         isActive: true
       });
@@ -195,6 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: event_name, // name is the field in our schema now
         location,
         eventDate: formattedDate.toISOString().split('T')[0], // Format as YYYY-MM-DD string
+        price: priceInCents,
         schoolId: school.id,
         isActive: true
       });
@@ -507,11 +518,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "This fundraiser is not currently active" });
       }
       
-      // Standard ticket price - in a real app, this would be stored with the fundraiser
-      const ticketPrice = 10; // $10 per ticket
+      // Use the fundraiser's price (which is already stored in cents)
+      const ticketPrice = fundraiser.price || 1000; // Default to $10 if not set
       
-      // Calculate amount (in cents for Stripe)
-      const amount = ticketPrice * quantity * 100;
+      // Calculate amount (price is already in cents)
+      const amount = ticketPrice * quantity;
       
       // Validate customer info
       if (!customerInfo || !customerInfo.name || !customerInfo.email) {

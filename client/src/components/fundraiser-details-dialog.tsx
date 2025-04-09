@@ -3,7 +3,8 @@ import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Fundraiser, School } from "@shared/schema";
-import { CalendarIcon, MapPinIcon, SchoolIcon, InfoIcon } from "lucide-react";
+import { CalendarIcon, MapPinIcon, SchoolIcon, InfoIcon, TicketIcon } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 import {
   Dialog,
@@ -118,6 +119,16 @@ export default function FundraiserDetailsDialog({
                     >
                       {fundraiser?.isActive ? "Active" : "Inactive"}
                     </Badge>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <TicketIcon className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium">Ticket Price</p>
+                    <p className="text-sm text-muted-foreground font-medium">
+                      {fundraiser?.price ? formatCurrency(fundraiser.price / 100) : formatCurrency(10)}
+                    </p>
                   </div>
                 </div>
               </div>

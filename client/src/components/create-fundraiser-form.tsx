@@ -42,6 +42,11 @@ const fundraiserFormSchema = z.object({
   eventDate: z.date({
     required_error: "Event date is required",
   }),
+  price: z.string().min(1, "Price is required")
+    .refine(
+      (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
+      { message: "Price must be a valid positive number" }
+    ),
 });
 
 type FundraiserFormValues = z.infer<typeof fundraiserFormSchema>;
@@ -61,6 +66,7 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
       name: "",
       location: "",
       eventDate: undefined,
+      price: "10.00",
     },
   });
 
@@ -71,11 +77,15 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
         ? format(values.eventDate, 'yyyy-MM-dd')
         : undefined;
 
+      // Convert price from string to cents for storage
+      const priceInCents = Math.round(parseFloat(values.price) * 100);
+      
       // Note: Now the backend expects event_name which maps to 'name' in the DB
       const res = await apiRequest("POST", "/api/school/fundraisers", {
         event_name: values.name, // event_name in API gets mapped to 'name' in database
         location: values.location,
         eventDate: formattedDate,
+        price: priceInCents, // Store price in cents
       });
       return await res.json() as Fundraiser;
     },
@@ -89,6 +99,7 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
         name: "",
         location: "",
         eventDate: undefined,
+        price: "10.00",
       });
       setOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/school/fundraisers"] });
@@ -188,6 +199,27 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
                       />
                     </PopoverContent>
                   </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ticket Price ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      placeholder="10.00"
+                      {...field}
+                      aria-label="Ticket Price"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

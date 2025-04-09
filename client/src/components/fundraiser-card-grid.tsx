@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Fundraiser } from "@shared/schema";
 import { format } from "date-fns";
 import { CalendarIcon, MapPinIcon, InfoIcon, ArrowRightIcon } from "lucide-react";
+import { cn, formatCurrency } from "@/lib/utils";
 
 import {
   Card,
@@ -122,9 +123,16 @@ export default function FundraiserCardGrid({
                 <MapPinIcon size={14} />
                 <span>{fundraiser.location}</span>
               </div>
-              <p className="mt-4 text-sm">
-                Join our fundraising event at {fundraiser.location} to support our school!
-              </p>
+              <div className="mt-4 flex justify-between items-center">
+                <p className="text-sm">
+                  Join our fundraising event to support our school!
+                </p>
+                <div className="text-sm font-medium">
+                  Ticket: {fundraiser.price 
+                    ? formatCurrency(fundraiser.price / 100) 
+                    : formatCurrency(10)}
+                </div>
+              </div>
             </CardContent>
             
             <CardFooter className="pt-2 flex justify-between">

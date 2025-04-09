@@ -56,6 +56,7 @@ export const fundraisers = pgTable("fundraisers", {
   schoolId: integer("school_id").references(() => schools.id).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   eventDate: text("event_date").notNull(), // Use string format 'YYYY-MM-DD'
+  price: integer("price").default(1000).notNull(), // Price in cents, default 10.00
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

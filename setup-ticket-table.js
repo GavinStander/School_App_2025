@@ -43,8 +43,8 @@ async function setupTicketPurchasesTable() {
   } catch (error) {
     console.error('Error setting up ticket_purchases table:', error);
   } finally {
-    // Close the connection
-    await sql.end();
+    // neon client doesn't need explicit closing
+    console.log('Operation complete');
   }
 }
 

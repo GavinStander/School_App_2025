@@ -62,8 +62,8 @@ export default function CheckoutPage() {
   
   const isLoading = isLoadingFundraiser || isLoadingSchool;
   
-  // Calculate amount to pay
-  const ticketPrice = 10; // $10 per ticket (fixed amount)
+  // Calculate amount to pay based on fundraiser price
+  const ticketPrice = fundraiser?.price ? fundraiser.price / 100 : 10; // Use fundraiser price or fallback to $10
   const totalAmount = ticketPrice * quantity;
   
   // Handle quantity changes
