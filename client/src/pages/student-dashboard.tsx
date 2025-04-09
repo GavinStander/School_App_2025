@@ -56,19 +56,37 @@ export default function StudentDashboard() {
         { fundraiserId, quantity, amount }
       );
       
-      return response.json();
+      // Parse response data
+      const data = await response.json();
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Test purchase created successfully:", data);
+      
       toast({
         title: "Test Purchase Created",
         description: "A test ticket purchase has been added to your account.",
       });
       
-      // Invalidate related queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ["/api/student/sales-summary"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/student/ticket-purchases"] });
+      // Add the new purchase to the purchases cache
+      if (data.ticketPurchase) {
+        // Update ticket purchases cache
+        queryClient.setQueryData(["/api/student/ticket-purchases"], (oldData: any) => {
+          const currentPurchases = oldData || [];
+          return [data.ticketPurchase, ...currentPurchases];
+        });
+        
+        // Force refetch the sales summary to get updated totals
+        queryClient.refetchQueries({ queryKey: ["/api/student/sales-summary"] });
+      } else {
+        // Just invalidate if we don't get the proper data structure
+        queryClient.invalidateQueries({ queryKey: ["/api/student/sales-summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/student/ticket-purchases"] });
+      }
     },
     onError: (error) => {
+      console.error("Error creating test purchase:", error);
+      
       toast({
         title: "Error",
         description: `Failed to create test purchase: ${error.message}`,
