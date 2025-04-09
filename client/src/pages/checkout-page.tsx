@@ -77,9 +77,16 @@ export default function CheckoutPage() {
   // Handle customer info form submit
   const handleCustomerInfoSubmit = async (info: typeof customerInfo) => {
     try {
+      console.log("Customer info submitted:", info);
       setCustomerInfo(info);
       
       // Create payment intent
+      console.log("Creating payment intent with data:", {
+        fundraiserId: parseInt(fundraiserId!),
+        quantity,
+        customerInfo: info,
+      });
+      
       const response = await fetch("/api/create-payment-intent", {
         method: "POST",
         headers: {
@@ -93,8 +100,12 @@ export default function CheckoutPage() {
         credentials: "include",
       });
       
+      console.log("Payment intent response status:", response.status);
+      
       if (!response.ok) {
         const text = await response.text();
+        console.log("Error response text:", text);
+        
         let errorMsg;
         try {
           // Try to parse as JSON
@@ -108,10 +119,13 @@ export default function CheckoutPage() {
       }
       
       const data = await response.json();
+      console.log("Payment intent response data:", data);
+      
       if (!data.clientSecret) {
         throw new Error("No client secret returned from the server");
       }
       
+      console.log("Setting client secret and proceeding to payment step");
       setClientSecret(data.clientSecret);
       
       // Proceed to payment step

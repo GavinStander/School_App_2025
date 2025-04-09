@@ -476,8 +476,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe payment endpoints
-  app.post("/api/create-payment-intent", isAuthenticated, async (req, res) => {
+  // Stripe payment endpoints - allow both authenticated and non-authenticated users
+  app.post("/api/create-payment-intent", async (req, res) => {
+    // Log the request details to help debug
+    console.log("Create payment intent request received:", {
+      body: req.body,
+      isAuthenticated: req.isAuthenticated(),
+      user: req.isAuthenticated() && req.user ? { id: req.user.id } : null,
+    });
     try {
       const { fundraiserId, quantity, customerInfo } = req.body;
       
@@ -513,18 +519,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       try {
+        // Create payment intent metadata
+        const metadata: Record<string, string> = {
+          fundraiserId: fundraiserId.toString(),
+          quantity: quantity.toString(),
+          customerName: customerInfo.name || "",
+          customerEmail: customerInfo.email || "",
+        };
+        
+        // Add optional info
+        if (customerInfo.phone) {
+          metadata.customerPhone = customerInfo.phone;
+        }
+        
+        // Add user ID if authenticated
+        if (req.isAuthenticated() && req.user && req.user.id) {
+          metadata.userId = req.user.id.toString();
+        }
+        
         // Create a payment intent
         const paymentIntent = await stripe.paymentIntents.create({
           amount,
           currency: "usd",
-          metadata: {
-            fundraiserId: fundraiserId.toString(),
-            quantity: quantity.toString(),
-            userId: req.user.id.toString(),
-            customerName: customerInfo.name || "",
-            customerEmail: customerInfo.email || "",
-            customerPhone: customerInfo.phone || "",
-          },
+          metadata,
         });
         
         // Return the client secret to the client
