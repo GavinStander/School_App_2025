@@ -4,6 +4,15 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { UserRole } from "@shared/schema";
 import { sendNotificationEmail } from "./email-service";
+import Stripe from "stripe";
+
+// Initialize Stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error("Missing required environment variable: STRIPE_SECRET_KEY");
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -464,6 +473,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting school details:", error);
       res.status(500).json({ message: "Could not retrieve school details" });
+    }
+  });
+
+  // Stripe payment endpoints
+  app.post("/api/create-payment-intent", isAuthenticated, async (req, res) => {
+    try {
+      const { fundraiserId, quantity, customerInfo } = req.body;
+      
+      if (!fundraiserId || !quantity || quantity < 1) {
+        return res.status(400).json({ message: "Missing or invalid parameters" });
+      }
+      
+      // Get fundraiser details
+      const fundraiser = await storage.getFundraiser(fundraiserId);
+      if (!fundraiser) {
+        return res.status(404).json({ message: "Fundraiser not found" });
+      }
+      
+      // Standard ticket price - in a real app, this would be stored with the fundraiser
+      const ticketPrice = 10; // $10 per ticket
+      
+      // Calculate amount (in cents for Stripe)
+      const amount = ticketPrice * quantity * 100;
+      
+      // Create a payment intent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency: "usd",
+        metadata: {
+          fundraiserId: fundraiserId.toString(),
+          quantity: quantity.toString(),
+          userId: req.user.id.toString(),
+          customerName: customerInfo?.name || "",
+          customerEmail: customerInfo?.email || "",
+          customerPhone: customerInfo?.phone || "",
+        },
+      });
+      
+      // Return the client secret to the client
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+        amount: amount / 100, // Convert back to dollars for display
+      });
+    } catch (error) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ message: "Could not process payment" });
     }
   });
 

@@ -12,6 +12,8 @@ import SchoolFundraisersPage from "@/pages/school-fundraisers-page";
 import SchoolProfilePage from "@/pages/school-profile-page";
 import StudentDashboard from "@/pages/student-dashboard";
 import StudentFundraisersPage from "@/pages/student-fundraisers-page";
+import CheckoutPage from "@/pages/checkout-page";
+import PaymentSuccessPage from "@/pages/payment-success-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 import { queryClient } from "./lib/queryClient";
@@ -73,6 +75,18 @@ function Router() {
         roleCheck={(user) => user.role === "student"}
         component={StudentFundraisersPage}
         fallbackPath="/student"
+      />
+      <ProtectedRoute
+        path="/checkout/:fundraiserId"
+        roleCheck={(user) => user.role === "student"}
+        component={CheckoutPage}
+        fallbackPath="/student/fundraisers"
+      />
+      <ProtectedRoute
+        path="/payment-success"
+        roleCheck={(user) => user.role === "student"}
+        component={PaymentSuccessPage}
+        fallbackPath="/student/fundraisers"
       />
       <Route component={NotFound} />
     </Switch>

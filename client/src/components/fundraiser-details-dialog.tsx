@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
+import { Link, useLocation } from "wouter";
 import { Fundraiser, School } from "@shared/schema";
 import { CalendarIcon, MapPinIcon, SchoolIcon, InfoIcon } from "lucide-react";
 
@@ -137,8 +138,16 @@ export default function FundraiserDetailsDialog({
           )}
         </div>
 
-        <div className="mt-4 flex justify-end">
-          <Button onClick={() => setOpen(false)}>Close</Button>
+        <div className="mt-4 flex justify-between">
+          <Button
+            asChild
+            variant="default"
+            className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+            onClick={() => setOpen(false)}
+          >
+            <Link to={`/checkout/${fundraiserId}`}>Buy Tickets</Link>
+          </Button>
+          <Button onClick={() => setOpen(false)} variant="outline">Close</Button>
         </div>
       </DialogContent>
     </Dialog>
