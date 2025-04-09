@@ -34,16 +34,18 @@ export default function FundraiserDetailsDialog({
 }: FundraiserDetailsDialogProps) {
   const [open, setOpen] = useState(false);
 
+  // Get fundraiser details
   const { data: fundraiser, isLoading: isLoadingFundraiser } = useQuery<Fundraiser>({
-    queryKey: ["/api/fundraisers", fundraiserId],
+    queryKey: [`/api/fundraisers/${fundraiserId}`],
     enabled: open,
   });
-
+  
+  // Get school data when we have the fundraiser
   const { data: school, isLoading: isLoadingSchool } = useQuery<School>({
-    queryKey: ["/api/schools", fundraiser?.schoolId],
+    queryKey: [`/api/schools/${fundraiser?.schoolId}`],
     enabled: !!fundraiser?.schoolId && open,
   });
-
+  
   const isLoading = isLoadingFundraiser || isLoadingSchool;
 
   return (
