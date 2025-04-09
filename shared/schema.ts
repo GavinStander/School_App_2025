@@ -76,6 +76,23 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const ticketPurchases = pgTable("ticket_purchases", {
+  id: serial("id").primaryKey(),
+  fundraiserId: integer("fundraiser_id")
+    .references(() => fundraisers.id)
+    .notNull(),
+  studentId: integer("student_id")
+    .references(() => students.id),
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  customerPhone: text("customer_phone"),
+  quantity: integer("quantity").notNull().default(1),
+  amount: integer("amount").notNull(), // stored in cents
+  paymentIntentId: text("payment_intent_id").notNull(),
+  paymentStatus: text("payment_status").notNull().default("completed"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // -----------------------------
 // Relations
 // -----------------------------
@@ -138,6 +155,17 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+export const ticketPurchasesRelations = relations(ticketPurchases, ({ one }) => ({
+  fundraiser: one(fundraisers, {
+    fields: [ticketPurchases.fundraiserId],
+    references: [fundraisers.id],
+  }),
+  student: one(students, {
+    fields: [ticketPurchases.studentId],
+    references: [students.id],
+  }),
+}));
+
 // -----------------------------
 // Zod Insert Schemas
 // -----------------------------
@@ -169,6 +197,11 @@ export const insertStudentFundraiserSchema = createInsertSchema(studentFundraise
 });
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTicketPurchaseSchema = createInsertSchema(ticketPurchases).omit({
   id: true,
   createdAt: true,
 });
@@ -209,3 +242,6 @@ export type StudentRegister = z.infer<typeof studentRegisterSchema>;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export type TicketPurchase = typeof ticketPurchases.$inferSelect;
+export type InsertTicketPurchase = z.infer<typeof insertTicketPurchaseSchema>;

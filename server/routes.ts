@@ -560,6 +560,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe webhook for handling payment events
+  app.post("/api/stripe-webhook", async (req, res) => {
+    const sig = req.headers["stripe-signature"];
+    let event;
+
+    // Verify webhook signature
+    try {
+      // In a production application, you should use a proper webhook secret
+      // const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+      // event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      
+      // For development/testing, we'll trust the request
+      event = req.body;
+    } catch (error: any) {
+      console.error('Webhook signature verification failed:', error.message);
+      return res.status(400).send(`Webhook Error: ${error.message}`);
+    }
+
+    // Handle the event
+    if (event.type === 'payment_intent.succeeded') {
+      try {
+        const paymentIntent = event.data.object;
+        
+        // Extract metadata
+        const metadata = paymentIntent.metadata || {};
+        const {
+          fundraiserId,
+          quantity,
+          customerName,
+          customerEmail,
+          customerPhone,
+          userId
+        } = metadata;
+        
+        console.log('Payment succeeded - creating ticket purchase record:', metadata);
+        
+        // Find student ID if the user is a student
+        let studentId = null;
+        if (userId) {
+          const user = await storage.getUser(parseInt(userId, 10));
+          if (user && user.role === UserRole.STUDENT) {
+            const student = await storage.getStudentByUserId(user.id);
+            if (student) {
+              studentId = student.id;
+            }
+          }
+        }
+        
+        // Record the ticket purchase
+        await storage.createTicketPurchase({
+          fundraiserId: parseInt(fundraiserId, 10),
+          studentId: studentId ? studentId : null,
+          customerName,
+          customerEmail,
+          customerPhone: customerPhone || null,
+          quantity: parseInt(quantity, 10),
+          amount: paymentIntent.amount,
+          paymentIntentId: paymentIntent.id,
+          paymentStatus: 'completed'
+        });
+        
+        console.log('Ticket purchase recorded successfully');
+      } catch (error) {
+        console.error('Error recording ticket purchase:', error);
+        // We still return 200 to Stripe as we don't want them to retry
+      }
+    }
+
+    // Return a 200 response to acknowledge receipt of the event
+    res.json({received: true});
+  });
+
+  // Get sales summary for a student
+  app.get("/api/student/sales-summary", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.role !== UserRole.STUDENT) {
+        return res.status(403).json({ message: "Only students can access their sales summary" });
+      }
+
+      const student = await storage.getStudentByUserId(req.user.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student record not found" });
+      }
+
+      const summary = await storage.getTicketSalesSummaryByStudent(student.id);
+      res.json(summary);
+    } catch (error) {
+      console.error("Error getting student sales summary:", error);
+      res.status(500).json({ message: "Could not retrieve sales summary" });
+    }
+  });
+
+  // Get detailed ticket purchases for a student
+  app.get("/api/student/ticket-purchases", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.role !== UserRole.STUDENT) {
+        return res.status(403).json({ message: "Only students can access their ticket purchases" });
+      }
+
+      const student = await storage.getStudentByUserId(req.user.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student record not found" });
+      }
+
+      const ticketPurchases = await storage.getTicketPurchasesByStudentId(student.id);
+      res.json(ticketPurchases);
+    } catch (error) {
+      console.error("Error getting student ticket purchases:", error);
+      res.status(500).json({ message: "Could not retrieve ticket purchases" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

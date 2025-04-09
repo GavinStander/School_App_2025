@@ -1,10 +1,10 @@
 import { db } from "./db";
 import { 
-  users, schools, students, fundraisers, studentFundraisers, notifications,
+  users, schools, students, fundraisers, studentFundraisers, notifications, ticketPurchases,
   type User, type InsertUser, type School, type InsertSchool,
   type Student, type InsertStudent, type Fundraiser, 
   type InsertFundraiser, type StudentFundraiser, type InsertStudentFundraiser,
-  type Notification, type InsertNotification,
+  type Notification, type InsertNotification, type TicketPurchase, type InsertTicketPurchase,
   UserRole
 } from "@shared/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -50,6 +50,12 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(notificationId: number): Promise<Notification>;
   markAllNotificationsAsRead(userId: number): Promise<void>;
+  
+  // Ticket purchase operations
+  createTicketPurchase(ticketPurchase: InsertTicketPurchase): Promise<TicketPurchase>;
+  getTicketPurchasesByFundraiserId(fundraiserId: number): Promise<TicketPurchase[]>;
+  getTicketPurchasesByStudentId(studentId: number): Promise<TicketPurchase[]>;
+  getTicketSalesSummaryByStudent(studentId: number): Promise<{ totalAmount: number; totalTickets: number }>;
   
   // Session store
   sessionStore: session.Store;
@@ -341,6 +347,68 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
       throw error;
+    }
+  }
+
+  // Ticket purchase operations
+  async createTicketPurchase(ticketPurchase: InsertTicketPurchase): Promise<TicketPurchase> {
+    try {
+      const [createdTicketPurchase] = await db
+        .insert(ticketPurchases)
+        .values(ticketPurchase)
+        .returning();
+      return createdTicketPurchase;
+    } catch (error) {
+      console.error("Error creating ticket purchase:", error);
+      throw error;
+    }
+  }
+
+  async getTicketPurchasesByFundraiserId(fundraiserId: number): Promise<TicketPurchase[]> {
+    try {
+      return db.select()
+        .from(ticketPurchases)
+        .where(eq(ticketPurchases.fundraiserId, fundraiserId))
+        .orderBy(desc(ticketPurchases.createdAt));
+    } catch (error) {
+      console.error("Error getting ticket purchases by fundraiser ID:", error);
+      return [];
+    }
+  }
+
+  async getTicketPurchasesByStudentId(studentId: number): Promise<TicketPurchase[]> {
+    try {
+      return db.select()
+        .from(ticketPurchases)
+        .where(eq(ticketPurchases.studentId, studentId))
+        .orderBy(desc(ticketPurchases.createdAt));
+    } catch (error) {
+      console.error("Error getting ticket purchases by student ID:", error);
+      return [];
+    }
+  }
+
+  async getTicketSalesSummaryByStudent(studentId: number): Promise<{ totalAmount: number; totalTickets: number }> {
+    try {
+      // Using SQL directly for aggregate functions
+      const result = await db.execute(
+        sql`SELECT 
+            SUM(amount) as "totalAmount", 
+            SUM(quantity) as "totalTickets" 
+          FROM ticket_purchases 
+          WHERE student_id = ${studentId} 
+            AND payment_status = 'completed'`
+      );
+      
+      const summary = result[0] as { totalAmount: string; totalTickets: string };
+      
+      return {
+        totalAmount: parseInt(summary.totalAmount || '0', 10) / 100, // Convert back from cents to dollars
+        totalTickets: parseInt(summary.totalTickets || '0', 10)
+      };
+    } catch (error) {
+      console.error("Error getting ticket sales summary:", error);
+      return { totalAmount: 0, totalTickets: 0 };
     }
   }
 }

@@ -6,6 +6,7 @@ import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from "@/hooks/use-auth";
 
 interface PaymentFormProps {
   fundraiserId: number;
@@ -16,6 +17,7 @@ export default function PaymentForm({ fundraiserId }: PaymentFormProps) {
   const elements = useElements();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
@@ -47,6 +49,14 @@ export default function PaymentForm({ fundraiserId }: PaymentFormProps) {
         confirmParams: {
           // Make sure to include the fundraiser ID in the redirect URL
           return_url: `${window.location.origin}/payment-success?fundraiser=${fundraiserId}`,
+          // Add the user ID in payment metadata if user is logged in
+          payment_method_data: {
+            metadata: {
+              fundraiserId: fundraiserId.toString(),
+              // Include user ID if user is logged in
+              ...(user ? { userId: user.id.toString() } : {}),
+            }
+          }
         },
         redirect: "if_required",
       });
