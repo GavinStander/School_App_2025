@@ -80,20 +80,46 @@ export default function CheckoutPage() {
       setCustomerInfo(info);
       
       // Create payment intent
-      const response = await apiRequest("POST", "/api/create-payment-intent", {
-        fundraiserId: parseInt(fundraiserId!),
-        quantity,
-        customerInfo: info,
+      const response = await fetch("/api/create-payment-intent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fundraiserId: parseInt(fundraiserId!),
+          quantity,
+          customerInfo: info,
+        }),
+        credentials: "include",
       });
       
+      if (!response.ok) {
+        const text = await response.text();
+        let errorMsg;
+        try {
+          // Try to parse as JSON
+          const errorJson = JSON.parse(text);
+          errorMsg = errorJson.message || "An error occurred during payment processing";
+        } catch (e) {
+          // If not valid JSON, use the raw text
+          errorMsg = text || `Server error: ${response.status}`;
+        }
+        throw new Error(errorMsg);
+      }
+      
       const data = await response.json();
+      if (!data.clientSecret) {
+        throw new Error("No client secret returned from the server");
+      }
+      
       setClientSecret(data.clientSecret);
       
       // Proceed to payment step
       setStep("payment");
     } catch (error: any) {
+      console.error("Payment intent error:", error);
       toast({
-        title: "Error",
+        title: "Payment Setup Error",
         description: error.message || "An error occurred while processing your request",
         variant: "destructive",
       });

@@ -26,33 +26,44 @@ export default function PaymentForm({ fundraiserId }: PaymentFormProps) {
     
     if (!stripe || !elements) {
       // Stripe.js hasn't loaded yet
+      toast({
+        title: "Payment System Error",
+        description: "The payment system is still initializing. Please try again in a moment.",
+        variant: "destructive",
+      });
       return;
     }
     
     setIsProcessing(true);
     setPaymentStatus("processing");
+    setPaymentError("");
     
     try {
+      console.log("Confirming payment with Stripe...");
+      
       // Confirm the payment
-      const { error, paymentIntent } = await stripe.confirmPayment({
+      const result = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: window.location.origin + "/payment-success",
+          // Make sure to include the fundraiser ID in the redirect URL
+          return_url: `${window.location.origin}/payment-success?fundraiser=${fundraiserId}`,
         },
         redirect: "if_required",
       });
       
-      if (error) {
+      console.log("Payment confirmation result:", result);
+      
+      if (result.error) {
         // Show error and remain on page
-        setPaymentError(error.message || "An error occurred during payment processing");
+        setPaymentError(result.error.message || "An error occurred during payment processing");
         setPaymentStatus("error");
         
         toast({
           title: "Payment Failed",
-          description: error.message || "Your payment could not be processed",
+          description: result.error.message || "Your payment could not be processed",
           variant: "destructive",
         });
-      } else if (paymentIntent && paymentIntent.status === "succeeded") {
+      } else if (result.paymentIntent && result.paymentIntent.status === "succeeded") {
         // Payment succeeded!
         setPaymentStatus("success");
         
@@ -63,19 +74,53 @@ export default function PaymentForm({ fundraiserId }: PaymentFormProps) {
         
         // Redirect after a short delay
         setTimeout(() => {
-          navigate("/payment-success?fundraiser=" + fundraiserId);
+          navigate(`/payment-success?fundraiser=${fundraiserId}`);
         }, 2000);
+      } else if (result.paymentIntent) {
+        // Handle other payment statuses
+        switch (result.paymentIntent.status) {
+          case "processing":
+            setPaymentStatus("processing");
+            toast({
+              title: "Payment Processing",
+              description: "Your payment is being processed. We'll update you when it's complete.",
+            });
+            break;
+            
+          case "requires_action":
+            // The user needs to take additional action, such as 3D Secure authentication
+            toast({
+              title: "Additional Authentication Required",
+              description: "Please complete the additional authentication steps.",
+            });
+            break;
+            
+          default:
+            setPaymentStatus("error");
+            setPaymentError(`Payment status: ${result.paymentIntent.status}. Please try again.`);
+            toast({
+              title: "Payment Not Completed",
+              description: "Your payment could not be completed. Please try again.",
+              variant: "destructive",
+            });
+        }
       } else {
-        // Some other status
+        // No result info
         setPaymentStatus("error");
-        setPaymentError("Unexpected payment status. Please try again.");
+        setPaymentError("Unexpected payment response. Please try again.");
+        toast({
+          title: "Payment Error",
+          description: "An unexpected error occurred. Please try again later.",
+          variant: "destructive",
+        });
       }
     } catch (err: any) {
+      console.error("Payment processing error:", err);
       setPaymentStatus("error");
       setPaymentError(err.message || "An unexpected error occurred");
       toast({
         title: "Error",
-        description: err.message || "An unexpected error occurred",
+        description: err.message || "An unexpected error occurred during payment processing",
         variant: "destructive",
       });
     } finally {

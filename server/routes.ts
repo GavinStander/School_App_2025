@@ -485,10 +485,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Missing or invalid parameters" });
       }
       
+      // Validate quantity to prevent abuse
+      if (quantity > 10) {
+        return res.status(400).json({ message: "Maximum 10 tickets per order" });
+      }
+      
       // Get fundraiser details
       const fundraiser = await storage.getFundraiser(fundraiserId);
       if (!fundraiser) {
         return res.status(404).json({ message: "Fundraiser not found" });
+      }
+      
+      // Make sure fundraiser is active
+      if (!fundraiser.isActive) {
+        return res.status(400).json({ message: "This fundraiser is not currently active" });
       }
       
       // Standard ticket price - in a real app, this would be stored with the fundraiser
@@ -497,28 +507,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate amount (in cents for Stripe)
       const amount = ticketPrice * quantity * 100;
       
-      // Create a payment intent
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount,
-        currency: "usd",
-        metadata: {
-          fundraiserId: fundraiserId.toString(),
-          quantity: quantity.toString(),
-          userId: req.user.id.toString(),
-          customerName: customerInfo?.name || "",
-          customerEmail: customerInfo?.email || "",
-          customerPhone: customerInfo?.phone || "",
-        },
-      });
+      // Validate customer info
+      if (!customerInfo || !customerInfo.name || !customerInfo.email) {
+        return res.status(400).json({ message: "Customer information is required" });
+      }
       
-      // Return the client secret to the client
-      res.json({
-        clientSecret: paymentIntent.client_secret,
-        amount: amount / 100, // Convert back to dollars for display
-      });
-    } catch (error) {
+      try {
+        // Create a payment intent
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount,
+          currency: "usd",
+          metadata: {
+            fundraiserId: fundraiserId.toString(),
+            quantity: quantity.toString(),
+            userId: req.user.id.toString(),
+            customerName: customerInfo.name || "",
+            customerEmail: customerInfo.email || "",
+            customerPhone: customerInfo.phone || "",
+          },
+        });
+        
+        // Return the client secret to the client
+        res.json({
+          clientSecret: paymentIntent.client_secret,
+          amount: amount / 100, // Convert back to dollars for display
+        });
+      } catch (stripeError: any) {
+        console.error("Stripe API error:", stripeError);
+        const errorMessage = stripeError.message || "Payment processing error";
+        return res.status(400).json({ message: errorMessage });
+      }
+    } catch (error: any) {
       console.error("Error creating payment intent:", error);
-      res.status(500).json({ message: "Could not process payment" });
+      res.status(500).json({ message: error.message || "Could not process payment" });
     }
   });
 
