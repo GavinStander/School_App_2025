@@ -127,7 +127,7 @@ export default function FundraiserDetailsDialog({
                   <div>
                     <p className="text-sm font-medium">Ticket Price</p>
                     <p className="text-sm text-muted-foreground font-medium">
-                      {fundraiser?.price ? formatCurrency(fundraiser.price / 100) : formatCurrency(10)}
+                      {formatCurrency(10)}
                     </p>
                   </div>
                 </div>

@@ -518,10 +518,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "This fundraiser is not currently active" });
       }
       
-      // Use the fundraiser's price (which is already stored in cents)
-      const ticketPrice = fundraiser.price || 1000; // Default to $10 if not set
+      // Use a fixed price for now (in cents)
+      const ticketPrice = 1000; // $10 in cents
       
-      // Calculate amount (price is already in cents)
+      // Calculate amount
       const amount = ticketPrice * quantity;
       
       // Validate customer info
