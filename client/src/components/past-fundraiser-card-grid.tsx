@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import FundraiserDetailsDialog from "./fundraiser-details-dialog";
+import AddToCartButton from "./add-to-cart-button";
 
 interface PastFundraiserCardGridProps {
   limit?: number;
@@ -134,21 +135,30 @@ export default function PastFundraiserCardGrid({
               </div>
             </CardContent>
             
-            <CardFooter className="pt-2 flex justify-between">
-              <FundraiserDetailsDialog
-                fundraiserId={fundraiser.id}
-                trigger={
-                  <Button variant="outline" size="sm">
-                    <InfoIcon className="h-4 w-4 mr-1" />
-                    View Details
-                  </Button>
-                }
-              />
-              <Button variant="ghost" size="icon" asChild>
-                <a href={`/checkout/${fundraiser.id}`}>
+            <CardFooter className="pt-2 flex flex-col gap-2">
+              <div className="flex justify-between w-full">
+                <FundraiserDetailsDialog
+                  fundraiserId={fundraiser.id}
+                  trigger={
+                    <Button variant="outline" size="sm">
+                      <InfoIcon className="h-4 w-4 mr-1" />
+                      View Details
+                    </Button>
+                  }
+                />
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => window.location.href = `/checkout/${fundraiser.id}`}
+                >
                   <ArrowRightIcon className="h-4 w-4" />
-                </a>
-              </Button>
+                </Button>
+              </div>
+              <AddToCartButton 
+                fundraiser={fundraiser} 
+                variant="outline"
+                className="w-full"
+              />
             </CardFooter>
           </Card>
         ))}
