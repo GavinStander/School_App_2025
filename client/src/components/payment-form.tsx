@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
 import { useLocation } from "wouter";
-import { CheckCircle2, DollarSign } from "lucide-react";
+import { CheckCircle2, DollarSign, CreditCard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest } from "@/lib/queryClient";
+import PaystackCheckout from "@/components/paystack-checkout";
 
 interface PaymentFormProps {
   fundraiserId: number;
@@ -174,8 +175,9 @@ export default function PaymentForm({ fundraiserId, onSuccess, onError }: Paymen
     );
   }
   
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("card");
+  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "paystack" | "cash">("stripe");
   const [processingCash, setProcessingCash] = useState(false);
+  const [paystackProcessing, setPaystackProcessing] = useState(false);
   
   const handleCashPayment = async () => {
     setProcessingCash(true);
@@ -286,13 +288,14 @@ export default function PaymentForm({ fundraiserId, onSuccess, onError }: Paymen
         </Alert>
       )}
       
-      <Tabs defaultValue="card" onValueChange={(v) => setPaymentMethod(v as "card" | "cash")} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="card">Credit Card</TabsTrigger>
-          <TabsTrigger value="cash">Cash Payment</TabsTrigger>
+      <Tabs defaultValue="stripe" onValueChange={(v) => setPaymentMethod(v as "stripe" | "paystack" | "cash")} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="stripe">Stripe</TabsTrigger>
+          <TabsTrigger value="paystack">Paystack</TabsTrigger>
+          <TabsTrigger value="cash">Cash</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="card">
+        <TabsContent value="stripe">
           <form onSubmit={handleSubmit} className="space-y-6">
             <PaymentElement />
             
@@ -302,7 +305,7 @@ export default function PaymentForm({ fundraiserId, onSuccess, onError }: Paymen
                 className="w-full" 
                 disabled={!stripe || !elements || isProcessing}
               >
-                {isProcessing ? "Processing..." : "Complete Credit Card Purchase"}
+                {isProcessing ? "Processing..." : "Pay with Stripe"}
               </Button>
             </div>
             
@@ -315,14 +318,141 @@ export default function PaymentForm({ fundraiserId, onSuccess, onError }: Paymen
             </div>
           </form>
         </TabsContent>
+
+        <TabsContent value="paystack">
+          <div className="space-y-6 py-4">
+            <div className="rounded-lg bg-muted p-6 text-center">
+              <CreditCard className="h-12 w-12 mx-auto mb-4 text-primary" />
+              <h3 className="text-lg font-medium mb-2">Paystack Payment</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Pay securely with Paystack. Local payments supported.
+              </p>
+              
+              {fundraiserId > 0 ? (
+                // For single fundraiser checkout
+                <PaystackCheckout
+                  email={user?.email || sessionStorage.getItem("customer_email") || "guest@example.com"}
+                  amount={Number(sessionStorage.getItem("ticket_total") || "0") * 100} // Convert to kobo (smallest currency unit)
+                  reference={`fundraiser-${fundraiserId}-${Date.now()}`}
+                  metadata={{
+                    fundraiserId,
+                    quantity: Number(sessionStorage.getItem("ticket_quantity") || "1"),
+                    customerInfo: sessionStorage.getItem("cart_customer_info")
+                      ? JSON.parse(sessionStorage.getItem("cart_customer_info") || "{}")
+                      : {
+                          name: user?.username || "Guest",
+                          email: user?.email || "guest@example.com"
+                        }
+                  }}
+                  onSuccess={(reference) => {
+                    setPaymentStatus("success");
+                    toast({
+                      title: "Payment Successful",
+                      description: "Your ticket purchase was successful!",
+                    });
+                    
+                    if (onSuccess) {
+                      onSuccess();
+                    } else {
+                      setTimeout(() => {
+                        navigate(`/payment-success?fundraiser=${fundraiserId}&reference=${reference}`);
+                      }, 2000);
+                    }
+                  }}
+                  onError={(error) => {
+                    setPaymentStatus("error");
+                    setPaymentError(error.message);
+                    toast({
+                      title: "Payment Failed",
+                      description: error.message,
+                      variant: "destructive",
+                    });
+                    
+                    if (onError) {
+                      onError(error);
+                    }
+                  }}
+                  isDisabled={paystackProcessing}
+                  buttonText={paystackProcessing ? "Processing..." : "Pay with Paystack"}
+                  className="w-full"
+                />
+              ) : (
+                // For cart checkout
+                <PaystackCheckout
+                  email={user?.email || sessionStorage.getItem("cart_customer_info") 
+                    ? JSON.parse(sessionStorage.getItem("cart_customer_info") || "{}").email 
+                    : "guest@example.com"}
+                  amount={Number(sessionStorage.getItem("cart_payment_amount") || "0") * 100} // Convert to kobo
+                  reference={`cart-${Date.now()}`}
+                  metadata={{
+                    isCart: true,
+                    items: sessionStorage.getItem("cart_items") 
+                      ? JSON.parse(sessionStorage.getItem("cart_items") || "[]") 
+                      : [],
+                    customerInfo: sessionStorage.getItem("cart_customer_info")
+                      ? JSON.parse(sessionStorage.getItem("cart_customer_info") || "{}")
+                      : {
+                          name: user?.username || "Guest",
+                          email: user?.email || "guest@example.com"
+                        }
+                  }}
+                  onSuccess={(reference) => {
+                    setPaymentStatus("success");
+                    
+                    // Clear cart data
+                    localStorage.removeItem("fundraiser-cart");
+                    sessionStorage.removeItem("cart_payment_client_secret");
+                    sessionStorage.removeItem("cart_payment_amount");
+                    sessionStorage.removeItem("cart_customer_info");
+                    sessionStorage.removeItem("cart_items");
+                    
+                    toast({
+                      title: "Payment Successful",
+                      description: "Your ticket purchase was successful!",
+                    });
+                    
+                    if (onSuccess) {
+                      onSuccess();
+                    } else {
+                      setTimeout(() => {
+                        navigate(`/payment-success?reference=${reference}`);
+                      }, 2000);
+                    }
+                  }}
+                  onError={(error) => {
+                    setPaymentStatus("error");
+                    setPaymentError(error.message);
+                    toast({
+                      title: "Payment Failed",
+                      description: error.message,
+                      variant: "destructive",
+                    });
+                    
+                    if (onError) {
+                      onError(error);
+                    }
+                  }}
+                  isDisabled={paystackProcessing}
+                  buttonText={paystackProcessing ? "Processing..." : "Pay with Paystack"}
+                  className="w-full"
+                />
+              )}
+            </div>
+            
+            <p className="text-sm text-muted-foreground text-center">
+              For test payments, you can use any valid email and card details.
+              <br />Test card: 4084 0840 8408 4081, any future expiry date, any 3-digit CVV.
+            </p>
+          </div>
+        </TabsContent>
         
         <TabsContent value="cash">
           <div className="space-y-6 py-4">
             <div className="rounded-lg bg-muted p-6 text-center">
               <DollarSign className="h-12 w-12 mx-auto mb-4 text-primary" />
-              <h3 className="text-lg font-medium mb-2">Cash Payment Option</h3>
+              <h3 className="text-lg font-medium mb-2">Cash Payment</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Select this option to record a cash payment. This should be used when the customer will pay in cash directly.
+                Record a cash payment when the customer will pay directly in cash.
               </p>
               
               <Button 
@@ -334,8 +464,8 @@ export default function PaymentForm({ fundraiserId, onSuccess, onError }: Paymen
               </Button>
             </div>
             
-            <p className="text-sm text-muted-foreground">
-              Note: Cash payment records are tracked internally and linked to the student who recorded the sale.
+            <p className="text-sm text-muted-foreground text-center">
+              Cash payments are tracked internally and linked to the student who recorded the sale.
             </p>
           </div>
         </TabsContent>
