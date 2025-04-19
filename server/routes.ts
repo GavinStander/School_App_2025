@@ -799,23 +799,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error('Invalid cart items data');
       }
       
-      // Find student ID if the user is a student
-      let studentId = null;
+      // Find student ID if the user is a student (for self-referrals)
+      let loggedInStudentId = null;
       if (userId) {
         const user = await storage.getUser(parseInt(userId, 10));
         if (user && user.role === UserRole.STUDENT) {
           const student = await storage.getStudentByUserId(user.id);
           if (student) {
-            studentId = student.id;
+            loggedInStudentId = student.id;
           }
         }
       }
       
       // Record each ticket purchase separately
       for (const item of items) {
+        // Check if this item has a specific student referral
+        let purchaseStudentId = null;
+        
+        // First priority: item-specific student ID (from shared link)
+        if (item.studentId) {
+          // Verify the student exists
+          const student = await storage.getStudent(parseInt(item.studentId, 10));
+          if (student) {
+            purchaseStudentId = student.id;
+          }
+        } 
+        // Second priority: logged-in student (for self-purchases)
+        else if (loggedInStudentId) {
+          purchaseStudentId = loggedInStudentId;
+        }
+        
         await storage.createTicketPurchase({
           fundraiserId: item.fundraiserId,
-          studentId: studentId ? studentId : null,
+          studentId: purchaseStudentId,
           customerName,
           customerEmail, 
           customerPhone: customerPhone || null,
@@ -842,21 +858,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerName,
         customerEmail,
         customerPhone,
-        userId
+        userId,
+        studentId: referralStudentId,
+        referralType
       } = metadata;
       
       if (!fundraiserId || !quantity) {
         throw new Error('Missing required payment metadata');
       }
       
-      // Find student ID if the user is a student
+      // Determine which student ID to use (priority: referral > logged-in user)
       let studentId = null;
-      if (userId) {
+      
+      // First check if there's a direct student referral (from shared link)
+      if (referralStudentId) {
+        // Verify the student exists
+        const student = await storage.getStudent(parseInt(referralStudentId, 10));
+        if (student) {
+          studentId = student.id;
+          console.log(`Using referral student ID ${studentId} from shared link`);
+        }
+      } 
+      // Otherwise, check if the logged-in user is a student
+      else if (userId) {
         const user = await storage.getUser(parseInt(userId, 10));
         if (user && user.role === UserRole.STUDENT) {
           const student = await storage.getStudentByUserId(user.id);
           if (student) {
             studentId = student.id;
+            console.log(`Using logged-in student ID ${studentId}`);
           }
         }
       }
@@ -864,7 +894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Record the ticket purchase
       await storage.createTicketPurchase({
         fundraiserId: parseInt(fundraiserId, 10),
-        studentId: studentId ? studentId : null,
+        studentId,
         customerName,
         customerEmail,
         customerPhone: customerPhone || null,
@@ -929,7 +959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only students and school admins can record cash payments" });
       }
       
-      const { fundraiserId, quantity, customerInfo } = req.body;
+      const { fundraiserId, quantity, customerInfo, studentId: referralStudentId } = req.body;
       
       if (!fundraiserId || !quantity || quantity < 1) {
         return res.status(400).json({ message: "Missing or invalid parameters" });
@@ -955,12 +985,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ticketPrice = 1000;
       const amount = ticketPrice * quantity;
       
-      // Find student ID if the user is a student
+      // Determine which student ID to use (priority: referral > logged-in user)
       let studentId = null;
-      if (req.user.role === UserRole.STUDENT) {
+      
+      // First priority: referral student ID from request (shared link)
+      if (referralStudentId) {
+        try {
+          const student = await storage.getStudent(parseInt(referralStudentId.toString(), 10));
+          if (student) {
+            studentId = student.id;
+            console.log(`Using referral student ID ${studentId} for cash payment`);
+          }
+        } catch (err) {
+          console.error("Error retrieving referral student for cash payment:", err);
+        }
+      }
+      // Second priority: logged-in student (self-purchase)
+      else if (req.user.role === UserRole.STUDENT) {
         const student = await storage.getStudentByUserId(req.user.id);
         if (student) {
           studentId = student.id;
+          console.log(`Using logged-in student ID ${studentId} for cash payment`);
         }
       }
       
@@ -1012,12 +1057,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate a unique cash payment identifier
       const paymentId = `cash_payment_cart_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       
-      // Find student ID if the user is authenticated and is a student
-      let studentId = null;
+      // Find student ID if the user is authenticated and is a student (for self-purchases)
+      let loggedInStudentId = null;
       if (req.isAuthenticated() && req.user && req.user.role === UserRole.STUDENT) {
         const student = await storage.getStudentByUserId(req.user.id);
         if (student) {
-          studentId = student.id;
+          loggedInStudentId = student.id;
         }
       }
       
@@ -1042,10 +1087,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Calculate amount for this item
         const itemAmount = ticketPrice * item.quantity;
         
+        // Determine which student ID to use for this item
+        let purchaseStudentId = null;
+        
+        // First priority: item-specific student ID (from shared link)
+        if (item.studentId) {
+          // Verify the student exists
+          const student = await storage.getStudent(parseInt(item.studentId.toString(), 10));
+          if (student) {
+            purchaseStudentId = student.id;
+            console.log(`Using referral student ID ${purchaseStudentId} for cash payment`);
+          }
+        } 
+        // Second priority: logged-in student (for self-purchases)
+        else if (loggedInStudentId) {
+          purchaseStudentId = loggedInStudentId;
+          console.log(`Using logged-in student ID ${purchaseStudentId} for cash payment`);
+        }
+        
         // Record this purchase
         const purchase = await storage.createTicketPurchase({
           fundraiserId: item.fundraiserId,
-          studentId: studentId,
+          studentId: purchaseStudentId,
           customerName: customerInfo.name,
           customerEmail: customerInfo.email,
           quantity: item.quantity,
@@ -1132,7 +1195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Paystack single purchase metadata received:", JSON.stringify(metadata));
       
       // Extract data from metadata
-      const { fundraiserId, quantity, customerInfo } = metadata;
+      const { fundraiserId, quantity, customerInfo, studentId: referralStudentId } = metadata;
       
       if (!fundraiserId || !quantity) {
         return res.status(400).json({ message: "Invalid transaction metadata" });
@@ -1147,7 +1210,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Single purchase details:", JSON.stringify({
         fundraiserId,
         quantity,
-        customerInfo
+        customerInfo,
+        referralStudentId
       }));
       console.log("Transaction amount (kobo):", transaction.amount);
       
@@ -1171,19 +1235,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       */
       
-      // Find student ID if the user is authenticated and is a student
-      let studentId = null;
-      if (req.isAuthenticated() && req.user && req.user.role === UserRole.STUDENT) {
+      // Determine which student ID to use for this purchase
+      let purchaseStudentId = null;
+      
+      // First priority: referral student ID from metadata (shared link)
+      if (referralStudentId) {
+        try {
+          const student = await storage.getStudent(parseInt(referralStudentId, 10));
+          if (student) {
+            purchaseStudentId = student.id;
+            console.log(`Using referral student ID ${purchaseStudentId} from Paystack metadata`);
+          }
+        } catch (err) {
+          console.error("Error retrieving referral student:", err);
+        }
+      }
+      // Second priority: logged-in student (self-purchase)
+      else if (req.isAuthenticated() && req.user && req.user.role === UserRole.STUDENT) {
         const student = await storage.getStudentByUserId(req.user.id);
         if (student) {
-          studentId = student.id;
+          purchaseStudentId = student.id;
+          console.log(`Using logged-in student ID ${purchaseStudentId}`);
         }
       }
       
       // Record the ticket purchase
       const ticketPurchase = await storage.createTicketPurchase({
         fundraiserId: parseInt(fundraiserId, 10),
-        studentId: studentId,
+        studentId: purchaseStudentId,
         customerName: customerInfo.name,
         customerEmail: customerInfo.email,
         quantity: parseInt(quantity, 10),
@@ -1243,12 +1322,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Customer information is missing" });
       }
       
-      // Find student ID if the user is authenticated and is a student
-      let studentId = null;
+      // Find student ID if the user is authenticated and is a student (for self-purchases)
+      let loggedInStudentId = null;
       if (req.isAuthenticated() && req.user && req.user.role === UserRole.STUDENT) {
         const student = await storage.getStudentByUserId(req.user.id);
         if (student) {
-          studentId = student.id;
+          loggedInStudentId = student.id;
         }
       }
       
@@ -1294,10 +1373,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Calculate amount for this item
         const itemAmount = ticketPrice * item.quantity;
         
+        // Determine which student ID to use for this purchase
+        let purchaseStudentId = null;
+        
+        // First priority: item-specific student ID (from shared link)
+        if (item.studentId) {
+          try {
+            const student = await storage.getStudent(parseInt(item.studentId.toString(), 10));
+            if (student) {
+              purchaseStudentId = student.id;
+              console.log(`Using referral student ID ${purchaseStudentId} for Paystack cart item`);
+            }
+          } catch (err) {
+            console.error("Error retrieving referral student for cart item:", err);
+          }
+        } 
+        // Second priority: logged-in student (for self-purchases)
+        else if (loggedInStudentId) {
+          purchaseStudentId = loggedInStudentId;
+          console.log(`Using logged-in student ID ${purchaseStudentId} for Paystack cart item`);
+        }
+        
         // Record this purchase
         const purchase = await storage.createTicketPurchase({
           fundraiserId: item.fundraiserId,
-          studentId: studentId,
+          studentId: purchaseStudentId,
           customerName: customerInfo.name,
           customerEmail: customerInfo.email,
           quantity: item.quantity,
