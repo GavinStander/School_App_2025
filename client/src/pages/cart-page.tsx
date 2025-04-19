@@ -208,8 +208,8 @@ export default function CartPage() {
           description: `Processing payment of ${formatCurrency(amount)}`,
         });
         
-        // Navigate to cart payment page with Paystack method
-        window.location.href = "/payment/cart?method=paystack";
+        // Navigate to dedicated Paystack checkout page
+        window.location.href = "/payment/paystack";
         return;
       }
       
