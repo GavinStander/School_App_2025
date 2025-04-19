@@ -23,6 +23,25 @@ import DashboardLayout from "@/components/dashboard-layout";
 import PaymentForm from "@/components/payment-form";
 import PaystackCheckout from "@/components/paystack-checkout";
 
+// Add PaystackPop type to global Window interface
+declare global {
+  interface Window {
+    PaystackPop: {
+      setup: (options: {
+        key: string;
+        email: string;
+        amount: number;
+        ref?: string;
+        metadata?: Record<string, any>;
+        onClose?: () => void;
+        callback?: (response: { reference: string }) => void;
+      }) => {
+        openIframe: () => void;
+      };
+    };
+  }
+}
+
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render.
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
@@ -261,23 +280,125 @@ export default function CartPaymentPage() {
             <div className="space-y-6">
               <div className="text-center">
                 <p className="mb-4">Click the button below to complete your payment with Paystack</p>
-                <PaystackCheckout
-                  email={customerInfo.email}
-                  amount={amount}
-                  metadata={{
-                    isCart: true,
-                    customerName: customerInfo.name,
-                    customerPhone: customerInfo.phone || "",
-                    cartItems: JSON.parse(sessionStorage.getItem("cart_items") || "[]")
-                  }}
-                  onSuccess={(reference) => {
-                    console.log("Paystack payment successful", reference);
-                    handlePaymentSuccess();
-                  }}
-                  onError={handlePaymentError}
-                  buttonText="Pay Now with Paystack"
-                  className="w-full"
-                />
+                {(() => {
+                  // Check if Paystack public key is available
+                  const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+                  if (!paystackKey) {
+                    return (
+                      <div className="p-4 border border-red-300 bg-red-50 rounded-md mb-4">
+                        <p className="text-red-600">Paystack API key is missing. Please check your environment variables.</p>
+                      </div>
+                    );
+                  }
+                  
+                  // Log important information for debugging
+                  console.log("Paystack checkout info:", {
+                    email: customerInfo.email,
+                    amount: amount,
+                    publicKey: paystackKey ? "Available" : "Missing"
+                  });
+                  
+                  // Parse cart items for metadata
+                  let cartItems = [];
+                  try {
+                    cartItems = JSON.parse(sessionStorage.getItem("cart_items") || "[]");
+                    console.log("Cart items for Paystack:", cartItems);
+                  } catch (error) {
+                    console.error("Error parsing cart items:", error);
+                  }
+                  
+                  // Direct implementation without the component
+                  const handleDirectPaystackPayment = () => {
+                    // Make sure script is loaded
+                    if (typeof window.PaystackPop === 'undefined') {
+                      console.log("Loading Paystack script directly...");
+                      const script = document.createElement('script');
+                      script.src = 'https://js.paystack.co/v1/inline.js';
+                      script.onload = () => {
+                        console.log("Paystack script loaded, now initializing payment...");
+                        initializePaystack();
+                      };
+                      document.head.appendChild(script);
+                    } else {
+                      initializePaystack();
+                    }
+                  };
+                  
+                  // Function to initialize Paystack after script is loaded
+                  const initializePaystack = () => {
+                    if (typeof window.PaystackPop === 'undefined') {
+                      console.error("PaystackPop still undefined after script load");
+                      toast({
+                        title: "Paystack Error",
+                        description: "Could not initialize Paystack. Please try again later.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    
+                    console.log("Initializing Paystack payment...");
+                    try {
+                      const paystackHandler = window.PaystackPop.setup({
+                        key: paystackKey,
+                        email: customerInfo.email,
+                        amount: amount * 100, // Convert to kobo
+                        metadata: {
+                          isCart: true,
+                          customerName: customerInfo.name,
+                          customerPhone: customerInfo.phone || "",
+                          cartItems: cartItems
+                        },
+                        onClose: () => {
+                          console.log("Paystack popup closed");
+                        },
+                        callback: async (response: { reference: string }) => {
+                          console.log("Paystack payment successful:", response);
+                          
+                          try {
+                            // Verify the payment with our server
+                            const verificationResponse = await fetch('/api/paystack/verify-cart', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                reference: response.reference
+                              }),
+                            });
+                            
+                            if (!verificationResponse.ok) {
+                              const errorData = await verificationResponse.json();
+                              throw new Error(errorData.message || 'Payment verification failed');
+                            }
+                            
+                            handlePaymentSuccess();
+                          } catch (error) {
+                            console.error("Payment verification error:", error);
+                            handlePaymentError(error instanceof Error ? error : new Error('Payment verification failed'));
+                          }
+                        }
+                      });
+                      
+                      paystackHandler.openIframe();
+                    } catch (error) {
+                      console.error("Error setting up Paystack:", error);
+                      toast({
+                        title: "Paystack Error",
+                        description: error instanceof Error ? error.message : "Failed to initialize Paystack checkout",
+                        variant: "destructive"
+                      });
+                    }
+                  };
+                  
+                  return (
+                    <Button 
+                      onClick={handleDirectPaystackPayment}
+                      className="w-full"
+                    >
+                      Pay Now with Paystack
+                    </Button>
+                  );
+                })()}
               </div>
             </div>
           ) : (
