@@ -989,9 +989,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate a unique cash payment identifier
       const paymentId = `cash_payment_cart_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       
-      // Find student ID if the user is a student
+      // Find student ID if the user is authenticated and is a student
       let studentId = null;
-      if (req.user.role === UserRole.STUDENT) {
+      if (req.isAuthenticated() && req.user && req.user.role === UserRole.STUDENT) {
         const student = await storage.getStudentByUserId(req.user.id);
         if (student) {
           studentId = student.id;
