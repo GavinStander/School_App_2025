@@ -5,6 +5,7 @@ import { setupAuth } from "./auth";
 import { UserRole } from "@shared/schema";
 import { sendNotificationEmail } from "./email-service";
 import Stripe from "stripe";
+import * as paystackService from "./paystack-service";
 
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -1083,6 +1084,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating test ticket purchase:", error);
       res.status(500).json({ message: "Failed to create test ticket purchase" });
+    }
+  });
+
+  // Paystack payment verification for individual fundraiser
+  app.post("/api/paystack/verify", async (req, res) => {
+    try {
+      const { reference } = req.body;
+      
+      if (!reference) {
+        return res.status(400).json({ message: "Transaction reference is required" });
+      }
+      
+      // Verify the transaction with Paystack
+      const transaction = await paystackService.verifyTransaction(reference);
+      
+      if (!transaction) {
+        return res.status(400).json({ message: "Failed to verify transaction" });
+      }
+      
+      if (transaction.status !== 'success') {
+        return res.status(400).json({ message: `Transaction status: ${transaction.status}` });
+      }
+      
+      // Get metadata from the transaction
+      const metadata = transaction.metadata || {};
+      const { fundraiserId, quantity, customerInfo } = metadata;
+      
+      if (!fundraiserId || !quantity) {
+        return res.status(400).json({ message: "Invalid transaction metadata" });
+      }
+      
+      // Validate customer info
+      if (!customerInfo || !customerInfo.name || !customerInfo.email) {
+        return res.status(400).json({ message: "Customer information is missing" });
+      }
+      
+      // Calculate the amount based on the received data
+      const ticketPrice = 1000; // $10 in cents
+      const amount = ticketPrice * quantity;
+      
+      // Compare with the transaction amount (convert from kobo to cents)
+      const transactionAmount = transaction.amount / 100; // Convert kobo to dollars
+      
+      if (transactionAmount < amount) {
+        return res.status(400).json({ message: "Payment amount is insufficient" });
+      }
+      
+      // Find student ID if the user is authenticated and is a student
+      let studentId = null;
+      if (req.isAuthenticated() && req.user && req.user.role === UserRole.STUDENT) {
+        const student = await storage.getStudentByUserId(req.user.id);
+        if (student) {
+          studentId = student.id;
+        }
+      }
+      
+      // Record the ticket purchase
+      const ticketPurchase = await storage.createTicketPurchase({
+        fundraiserId: parseInt(fundraiserId, 10),
+        studentId: studentId,
+        customerName: customerInfo.name,
+        customerEmail: customerInfo.email,
+        customerPhone: customerInfo.phone || null,
+        quantity: parseInt(quantity, 10),
+        amount: amount,
+        paymentIntentId: reference,
+        paymentStatus: "completed"
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: "Payment verified and ticket purchase recorded",
+        ticketPurchase
+      });
+    } catch (error) {
+      console.error("Error verifying Paystack payment:", error);
+      res.status(500).json({ message: "Failed to verify payment" });
+    }
+  });
+  
+  // Paystack payment verification for cart checkout
+  app.post("/api/paystack/verify-cart", async (req, res) => {
+    try {
+      const { reference } = req.body;
+      
+      if (!reference) {
+        return res.status(400).json({ message: "Transaction reference is required" });
+      }
+      
+      // Verify the transaction with Paystack
+      const transaction = await paystackService.verifyTransaction(reference);
+      
+      if (!transaction) {
+        return res.status(400).json({ message: "Failed to verify transaction" });
+      }
+      
+      if (transaction.status !== 'success') {
+        return res.status(400).json({ message: `Transaction status: ${transaction.status}` });
+      }
+      
+      // Get metadata from the transaction
+      const metadata = transaction.metadata || {};
+      const { isCart, items, customerInfo } = metadata;
+      
+      if (!isCart || !items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ message: "Invalid cart data in transaction metadata" });
+      }
+      
+      // Validate customer info
+      if (!customerInfo || !customerInfo.name || !customerInfo.email) {
+        return res.status(400).json({ message: "Customer information is missing" });
+      }
+      
+      // Find student ID if the user is authenticated and is a student
+      let studentId = null;
+      if (req.isAuthenticated() && req.user && req.user.role === UserRole.STUDENT) {
+        const student = await storage.getStudentByUserId(req.user.id);
+        if (student) {
+          studentId = student.id;
+        }
+      }
+      
+      // Calculate total expected amount
+      const ticketPrice = 1000; // $10 in cents
+      let expectedAmount = 0;
+      for (const item of items) {
+        expectedAmount += ticketPrice * item.quantity;
+      }
+      
+      // Compare with the transaction amount (convert from kobo to cents)
+      const transactionAmount = transaction.amount / 100; // Convert kobo to dollars
+      
+      if (transactionAmount < expectedAmount) {
+        return res.status(400).json({ message: "Payment amount is insufficient" });
+      }
+      
+      // Record each ticket purchase separately
+      const ticketPurchases = [];
+      for (const item of items) {
+        if (!item.fundraiserId || !item.quantity || item.quantity < 1) {
+          return res.status(400).json({ message: "Invalid item in cart" });
+        }
+        
+        // Get fundraiser details to validate it exists
+        const fundraiser = await storage.getFundraiser(item.fundraiserId);
+        if (!fundraiser) {
+          return res.status(400).json({ message: `Fundraiser with ID ${item.fundraiserId} not found` });
+        }
+        
+        // Calculate amount for this item
+        const itemAmount = ticketPrice * item.quantity;
+        
+        // Record this purchase
+        const purchase = await storage.createTicketPurchase({
+          fundraiserId: item.fundraiserId,
+          studentId: studentId,
+          customerName: customerInfo.name,
+          customerEmail: customerInfo.email,
+          customerPhone: customerInfo.phone || null,
+          quantity: item.quantity,
+          amount: itemAmount,
+          paymentIntentId: reference, // Same reference for all items in cart
+          paymentStatus: "completed"
+        });
+        
+        ticketPurchases.push(purchase);
+      }
+      
+      res.status(200).json({
+        success: true,
+        message: `Successfully verified payment and recorded ${ticketPurchases.length} ticket purchases`,
+        ticketPurchases
+      });
+    } catch (error) {
+      console.error("Error verifying Paystack cart payment:", error);
+      res.status(500).json({ message: "Failed to verify cart payment" });
     }
   });
 

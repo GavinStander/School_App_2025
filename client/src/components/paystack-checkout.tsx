@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface PaystackCheckoutProps {
   email: string;
@@ -83,9 +84,32 @@ export default function PaystackCheckout({
           setIsLoading(false);
           if (onClose) onClose();
         },
-        callback: (response: { reference: string }) => {
-          setIsLoading(false);
-          onSuccess(response.reference);
+        callback: async (response: { reference: string }) => {
+          try {
+            // Check if this is a cart payment by looking at metadata
+            const isCartPayment = metadata && metadata.isCart;
+            
+            // Verify the payment with our server
+            const endpoint = isCartPayment 
+              ? '/api/paystack/verify-cart' 
+              : '/api/paystack/verify';
+            
+            // Send verification request to server
+            const verificationResponse = await apiRequest('POST', endpoint, {
+              reference: response.reference
+            });
+            
+            if (!verificationResponse.ok) {
+              const errorData = await verificationResponse.json();
+              throw new Error(errorData.message || 'Payment verification failed');
+            }
+            
+            setIsLoading(false);
+            onSuccess(response.reference);
+          } catch (error: any) {
+            setIsLoading(false);
+            onError(new Error(error.message || 'Payment verification failed'));
+          }
         },
       });
       
