@@ -3,8 +3,12 @@ import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Fundraiser, School } from "@shared/schema";
-import { CalendarIcon, MapPinIcon, SchoolIcon, InfoIcon, TicketIcon, ShoppingCart } from "lucide-react";
+import { 
+  CalendarIcon, MapPinIcon, SchoolIcon, InfoIcon, TicketIcon, 
+  ShoppingCart, Share2Icon, Copy, CheckCircle2 
+} from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 import {
   Dialog,
@@ -24,6 +28,13 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 interface FundraiserDetailsDialogProps {
   fundraiserId: number;
@@ -35,6 +46,9 @@ export default function FundraiserDetailsDialog({
   trigger,
 }: FundraiserDetailsDialogProps) {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   // Get fundraiser details
   const { data: fundraiser, isLoading: isLoadingFundraiser } = useQuery<Fundraiser>({
@@ -48,7 +62,32 @@ export default function FundraiserDetailsDialog({
     enabled: !!fundraiser?.schoolId && open,
   });
   
+  // Get user info to check if user is a student
+  const { data: userInfo } = useQuery({
+    queryKey: ["/api/user/info"],
+    enabled: !!user,
+  });
+
   const isLoading = isLoadingFundraiser || isLoadingSchool;
+  
+  // Student ID for sharing, if the user is a student
+  const studentId = userInfo?.student?.id;
+  
+  const shareableLink = studentId 
+    ? `${window.location.origin}/fundraiser/${fundraiserId}?ref=${studentId}` 
+    : `${window.location.origin}/fundraiser/${fundraiserId}`;
+    
+  const copyShareableLink = () => {
+    navigator.clipboard.writeText(shareableLink);
+    setCopied(true);
+    
+    toast({
+      title: "Link copied!",
+      description: "Share this link with friends and family",
+    });
+    
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -145,6 +184,42 @@ export default function FundraiserDetailsDialog({
                     " Event details coming soon."}
                 </p>
               </div>
+              
+              {/* Share button for students */}
+              {studentId && (
+                <>
+                  <Separator />
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Share With Friends</h4>
+                    <div className="flex items-center">
+                      <div className="flex-1 py-2 px-3 border rounded-l-md bg-muted text-xs text-muted-foreground overflow-hidden whitespace-nowrap text-ellipsis">
+                        {shareableLink}
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="rounded-l-none h-9"
+                              onClick={copyShareableLink}
+                            >
+                              {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Copy link</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Share this link with friends and family. When they purchase tickets, 
+                      it will be tracked for your fundraising efforts.
+                    </p>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
@@ -160,7 +235,7 @@ export default function FundraiserDetailsDialog({
               const existingCartJson = localStorage.getItem('fundraiser-cart');
               let cart = existingCartJson ? JSON.parse(existingCartJson) : [];
               
-              // Add new item
+              // Add new item with student reference if available
               cart.push({
                 id: Date.now(), // Generate a unique ID
                 fundraiserId: fundraiserId,
@@ -168,7 +243,9 @@ export default function FundraiserDetailsDialog({
                 eventDate: fundraiser?.eventDate,
                 location: fundraiser?.location || 'Unknown',
                 quantity: 1,
-                price: 10 // Fixed price at $10 per ticket
+                price: 10, // Fixed price at $10 per ticket
+                studentId: studentId || null, // Include the student ID if available
+                referral: studentId ? 'self' : null // Mark as self-referral if the student is buying
               });
               
               // Save updated cart back to local storage
