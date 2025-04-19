@@ -298,29 +298,51 @@ export default function StudentDashboard() {
                     <th scope="col" className="px-6 py-3">Tickets</th>
                     <th scope="col" className="px-6 py-3">Amount</th>
                     <th scope="col" className="px-6 py-3">Date</th>
+                    <th scope="col" className="px-6 py-3">Details</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {purchases.map((purchase, index) => (
-                    <tr key={index} className="bg-white border-b hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                        {purchase.customerName}
-                      </td>
-                      <td className="px-6 py-4">
-                        {/* We would need to fetch the fundraiser name here */}
-                        Fundraiser #{purchase.fundraiserId}
-                      </td>
-                      <td className="px-6 py-4">
-                        {purchase.quantity}
-                      </td>
-                      <td className="px-6 py-4">
-                        {formatCurrency(purchase.amount / 100)}
-                      </td>
-                      <td className="px-6 py-4">
-                        {new Date(purchase.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
+                  {purchases.map((purchase, index) => {
+                    // Find the fundraiser name from the available fundraisers
+                    const fundraiser = fundraisers?.find(f => f.id === purchase.fundraiserId);
+                    const fundraiserName = fundraiser ? fundraiser.name : `Fundraiser #${purchase.fundraiserId}`;
+                    const fundraiserLocation = fundraiser ? fundraiser.location : '';
+                    
+                    return (
+                      <tr key={index} className="bg-white border-b hover:bg-gray-50">
+                        <td className="px-6 py-4 font-medium text-gray-900">
+                          {purchase.customerName}
+                          {purchase.studentEmail && purchase.studentEmail !== userInfo?.email && (
+                            <span className="block text-xs text-green-600 mt-1">
+                              Via referral: {purchase.studentEmail}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="font-medium">{fundraiserName}</div>
+                          {fundraiserLocation && (
+                            <div className="text-xs text-gray-500">{fundraiserLocation}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {purchase.quantity}
+                        </td>
+                        <td className="px-6 py-4">
+                          {formatCurrency(purchase.amount / 100)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {new Date(purchase.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          {purchase.ticketInfo && (
+                            <div className="text-xs max-w-[200px] whitespace-normal">
+                              {purchase.ticketInfo}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
