@@ -199,9 +199,7 @@ export default function CartPage() {
       sessionStorage.setItem("cart_payment_amount", amount.toString());
       sessionStorage.setItem("cart_customer_info", JSON.stringify(customerInfo));
       
-      // Navigate to a payment confirmation page
-      // For now, we'll use a direct navigation, but ideally,
-      // we would add a cart-payment-page.tsx component in the future
+      // Navigate to the cart payment page
       window.location.href = "/payment/cart";
     } catch (error: any) {
       console.error("Checkout error:", error);

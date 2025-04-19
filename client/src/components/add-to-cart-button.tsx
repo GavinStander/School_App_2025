@@ -62,7 +62,15 @@ export default function AddToCartButton({
         
         toast({
           title: "Added to cart",
-          description: `"${fundraiser.name}" has been added to your cart.`
+          description: `"${fundraiser.name}" has been added to your cart.`,
+          action: (
+            <div 
+              className="cursor-pointer underline" 
+              onClick={() => window.location.href = "/cart"}
+            >
+              Go to cart
+            </div>
+          )
         });
       }
       
@@ -71,9 +79,11 @@ export default function AddToCartButton({
       
       // Show success state
       setAdded(true);
+      
+      // Automatically redirect to cart page
       setTimeout(() => {
-        setAdded(false);
-      }, 2000);
+        window.location.href = "/cart";
+      }, 1500);
     } catch (error) {
       console.error("Error adding to cart:", error);
       toast({

@@ -151,12 +151,36 @@ export default function FundraiserDetailsDialog({
 
         <div className="mt-4 flex justify-between">
           <Button
-            asChild
             variant="default"
             className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              // Add to cart first
+              // Get existing cart from local storage
+              const existingCartJson = localStorage.getItem('fundraiser-cart');
+              let cart = existingCartJson ? JSON.parse(existingCartJson) : [];
+              
+              // Add new item
+              cart.push({
+                id: Date.now(), // Generate a unique ID
+                fundraiserId: fundraiserId,
+                name: fundraiser?.name || 'Fundraiser',
+                eventDate: fundraiser?.eventDate,
+                location: fundraiser?.location || 'Unknown',
+                quantity: 1,
+                price: 10 // Fixed price at $10 per ticket
+              });
+              
+              // Save updated cart back to local storage
+              localStorage.setItem('fundraiser-cart', JSON.stringify(cart));
+              
+              // Close dialog
+              setOpen(false);
+              
+              // Navigate to cart page
+              window.location.href = "/cart";
+            }}
           >
-            <Link to={`/checkout/${fundraiserId}`}>Buy Tickets</Link>
+            Buy Tickets
           </Button>
           <Button onClick={() => setOpen(false)} variant="outline">Close</Button>
         </div>
