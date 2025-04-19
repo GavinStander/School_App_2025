@@ -363,11 +363,35 @@ export class DatabaseStorage implements IStorage {
   // Ticket purchase operations
   async createTicketPurchase(ticketPurchase: InsertTicketPurchase): Promise<TicketPurchase> {
     try {
-      const [createdTicketPurchase] = await db
-        .insert(ticketPurchases)
-        .values(ticketPurchase)
-        .returning();
-      return createdTicketPurchase;
+      console.log("Creating ticket purchase with SQL:", ticketPurchase);
+      
+      // Use SQL query directly to avoid schema mismatch issues
+      const result = await db.execute(
+        sql`INSERT INTO ticket_purchases (
+          fundraiser_id, student_id, customer_name, customer_email, 
+          quantity, amount, payment_intent_id, payment_status
+        ) VALUES (
+          ${ticketPurchase.fundraiserId}, 
+          ${ticketPurchase.studentId}, 
+          ${ticketPurchase.customerName}, 
+          ${ticketPurchase.customerEmail},
+          ${ticketPurchase.quantity}, 
+          ${ticketPurchase.amount}, 
+          ${ticketPurchase.paymentIntentId}, 
+          ${ticketPurchase.paymentStatus}
+        ) RETURNING 
+          id, fundraiser_id as "fundraiserId", student_id as "studentId",
+          customer_name as "customerName", customer_email as "customerEmail",
+          quantity, amount, payment_intent_id as "paymentIntentId",
+          payment_status as "paymentStatus", created_at as "createdAt"
+      `);
+      
+      if (result && result.length > 0) {
+        console.log("Created ticket purchase:", result[0]);
+        return result[0] as TicketPurchase;
+      }
+      
+      throw new Error("Failed to create ticket purchase");
     } catch (error) {
       console.error("Error creating ticket purchase:", error);
       throw error;
@@ -376,10 +400,19 @@ export class DatabaseStorage implements IStorage {
 
   async getTicketPurchasesByFundraiserId(fundraiserId: number): Promise<TicketPurchase[]> {
     try {
-      return db.select()
-        .from(ticketPurchases)
-        .where(eq(ticketPurchases.fundraiserId, fundraiserId))
-        .orderBy(desc(ticketPurchases.createdAt));
+      // Use raw SQL query to avoid schema mismatch issues
+      const result = await db.execute(
+        sql`SELECT 
+            id, fundraiser_id as "fundraiserId", student_id as "studentId", 
+            customer_name as "customerName", customer_email as "customerEmail",
+            quantity, amount, payment_intent_id as "paymentIntentId", 
+            payment_status as "paymentStatus", created_at as "createdAt"
+          FROM ticket_purchases 
+          WHERE fundraiser_id = ${fundraiserId}
+          ORDER BY created_at DESC`
+      );
+      
+      return result as TicketPurchase[];
     } catch (error) {
       console.error("Error getting ticket purchases by fundraiser ID:", error);
       return [];
