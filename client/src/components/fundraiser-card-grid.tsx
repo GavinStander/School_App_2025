@@ -129,7 +129,7 @@ export default function FundraiserCardGrid({
                   Join our fundraising event to support our school!
                 </p>
                 <div className="text-sm font-medium">
-                  Ticket: {formatCurrency(10)}
+                  Ticket: {formatCurrency(10)} {/* Fixed price of $10 per ticket */}
                 </div>
               </div>
             </CardContent>
