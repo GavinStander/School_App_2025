@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Trash2, CreditCard, ArrowRight } from "lucide-react";
+import { Loader2, Trash2, CreditCard, DollarSign, ArrowRight } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -140,6 +140,54 @@ export default function CartPage() {
     setIsLoading(true);
     
     try {
+      // Check if we should process as cash payment
+      if (paymentMethod === "cash") {
+        // Process as cash payment
+        const checkoutData = {
+          items: cartItems.map(item => ({
+            fundraiserId: item.fundraiserId,
+            quantity: item.quantity
+          })),
+          customerInfo
+        };
+        
+        // Process with cash payment
+        const response = await fetch("/api/cart/cash-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(checkoutData),
+          credentials: "include",
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMsg;
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMsg = errorJson.message || "Cash payment processing failed";
+          } catch (e) {
+            errorMsg = errorText || `Server error: ${response.status}`;
+          }
+          throw new Error(errorMsg);
+        }
+        
+        const result = await response.json();
+        
+        // Clear cart after successful cash payment
+        localStorage.removeItem('fundraiser-cart');
+        
+        toast({
+          title: "Cash payment recorded",
+          description: "Your cash payment has been recorded. Please pay when you receive your tickets.",
+        });
+        
+        // Redirect to success page
+        window.location.href = "/payment/success?type=cart&method=cash";
+        return;
+      }
+      
       // Check if we should process as a multi-item cart or single item checkout
       if (cartItems.length === 1) {
         // Single item checkout - use the existing checkout page
@@ -148,7 +196,7 @@ export default function CartPage() {
         return;
       }
       
-      // Process as a multi-item cart checkout
+      // Process as a multi-item cart checkout with Stripe
       
       // Prepare checkout data
       const checkoutData = {
@@ -410,7 +458,13 @@ export default function CartPage() {
                       </Label>
                     </div>
                     
-                    {/* Add other payment methods here in the future */}
+                    <div className="flex items-center space-x-2 border rounded-md p-3">
+                      <RadioGroupItem value="cash" id="cash" />
+                      <Label htmlFor="cash" className="flex items-center">
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        Cash Payment
+                      </Label>
+                    </div>
                   </RadioGroup>
                 </div>
               </div>

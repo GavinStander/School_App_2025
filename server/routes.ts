@@ -968,12 +968,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Cash payment endpoint for cart purchases
-  app.post("/api/cart/cash-payment", isAuthenticated, async (req, res) => {
+  app.post("/api/cart/cash-payment", async (req, res) => {
     try {
-      // Check if user is a student or school admin (only they can record cash payments)
-      if (req.user.role !== UserRole.STUDENT && req.user.role !== UserRole.SCHOOL) {
-        return res.status(403).json({ message: "Only students and school admins can record cash payments" });
-      }
+      // Allow anyone to record cash payments (authenticated or not)
       
       const { items, customerInfo } = req.body;
       
