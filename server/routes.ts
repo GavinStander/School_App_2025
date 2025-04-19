@@ -1106,6 +1106,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get metadata from the transaction
       const metadata = transaction.metadata || {};
+      console.log("Paystack single purchase metadata received:", JSON.stringify(metadata));
+      
+      // Extract data from metadata
       const { fundraiserId, quantity, customerInfo } = metadata;
       
       if (!fundraiserId || !quantity) {
@@ -1182,9 +1185,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get metadata from the transaction
       const metadata = transaction.metadata || {};
-      const { isCart, items, customerInfo } = metadata;
+      console.log("Paystack cart metadata received:", JSON.stringify(metadata));
       
-      if (!isCart || !items || !Array.isArray(items) || items.length === 0) {
+      // Extract cart data from metadata
+      const { isCart, customerInfo, items } = metadata;
+      
+      if (!isCart) {
+        return res.status(400).json({ message: "Transaction is not marked as a cart purchase" });
+      }
+      
+      if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ message: "Invalid cart data in transaction metadata" });
       }
       

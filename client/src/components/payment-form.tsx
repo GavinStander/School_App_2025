@@ -332,7 +332,7 @@ export default function PaymentForm({ fundraiserId, onSuccess, onError }: Paymen
                 // For single fundraiser checkout
                 <PaystackCheckout
                   email={user?.email || sessionStorage.getItem("customer_email") || "guest@example.com"}
-                  amount={Number(sessionStorage.getItem("ticket_total") || "0") * 100} // Convert to kobo (smallest currency unit)
+                  amount={Number(sessionStorage.getItem("ticket_total") || "0")} // Amount in dollars (will be converted to kobo in component)
                   reference={`fundraiser-${fundraiserId}-${Date.now()}`}
                   metadata={{
                     fundraiserId,
@@ -382,7 +382,7 @@ export default function PaymentForm({ fundraiserId, onSuccess, onError }: Paymen
                   email={user?.email || sessionStorage.getItem("cart_customer_info") 
                     ? JSON.parse(sessionStorage.getItem("cart_customer_info") || "{}").email 
                     : "guest@example.com"}
-                  amount={Number(sessionStorage.getItem("cart_payment_amount") || "0") * 100} // Convert to kobo
+                  amount={Number(sessionStorage.getItem("cart_payment_amount") || "0")} // Amount in dollars (will be converted to kobo in component)
                   reference={`cart-${Date.now()}`}
                   metadata={{
                     isCart: true,
