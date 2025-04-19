@@ -228,8 +228,18 @@ export class DatabaseStorage implements IStorage {
   // Fundraiser operations
   async getFundraiser(id: number): Promise<Fundraiser | undefined> {
     try {
-      const [fundraiser] = await db.select().from(fundraisers).where(eq(fundraisers.id, id));
-      return fundraiser;
+      // Use SQL query directly to avoid issues with column names
+      const result = await db.execute(
+        sql`SELECT id, name, location, school_id as "schoolId", is_active as "isActive", 
+             event_date as "eventDate", created_at as "createdAt" 
+             FROM fundraisers 
+             WHERE id = ${id}`
+      );
+      
+      if (result && result.length > 0) {
+        return result[0] as Fundraiser;
+      }
+      return undefined;
     } catch (error) {
       console.error("Error getting fundraiser:", error);
       return undefined;
