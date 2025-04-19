@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Trash2, CreditCard, DollarSign, ArrowRight } from "lucide-react";
+import { Loader2, Trash2, CreditCard, DollarSign, ArrowRight, CreditCard as PaymentIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -140,17 +140,26 @@ export default function CartPage() {
     setIsLoading(true);
     
     try {
+      // Prepare common checkout data
+      const checkoutData = {
+        items: cartItems.map(item => ({
+          fundraiserId: item.fundraiserId,
+          quantity: item.quantity
+        })),
+        customerInfo
+      };
+      
+      // Store cart items data for all payment methods
+      const cartItemsData = cartItems.map(item => ({
+        fundraiserId: item.fundraiserId,
+        quantity: item.quantity,
+        amount: item.price * item.quantity * 100 // Convert to cents
+      }));
+      sessionStorage.setItem("cart_items", JSON.stringify(cartItemsData));
+      sessionStorage.setItem("cart_customer_info", JSON.stringify(customerInfo));
+      
       // Check if we should process as cash payment
       if (paymentMethod === "cash") {
-        // Process as cash payment
-        const checkoutData = {
-          items: cartItems.map(item => ({
-            fundraiserId: item.fundraiserId,
-            quantity: item.quantity
-          })),
-          customerInfo
-        };
-        
         // Process with cash payment
         const response = await fetch("/api/cart/cash-payment", {
           method: "POST",
@@ -188,8 +197,24 @@ export default function CartPage() {
         return;
       }
       
-      // Check if we should process as a multi-item cart or single item checkout
-      if (cartItems.length === 1) {
+      // Check if we should process as Paystack
+      if (paymentMethod === "paystack") {
+        // Calculate total amount for Paystack
+        const amount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        sessionStorage.setItem("cart_payment_amount", amount.toString());
+        
+        toast({
+          title: "Redirecting to Paystack",
+          description: `Processing payment of ${formatCurrency(amount)}`,
+        });
+        
+        // Navigate to cart payment page with Paystack method
+        window.location.href = "/payment/cart?method=paystack";
+        return;
+      }
+      
+      // Check if we should process as a multi-item cart or single item checkout with Stripe
+      if (cartItems.length === 1 && paymentMethod === "stripe") {
         // Single item checkout - use the existing checkout page
         const item = cartItems[0];
         window.location.href = `/checkout/${item.fundraiserId}?quantity=${item.quantity}`;
@@ -197,16 +222,6 @@ export default function CartPage() {
       }
       
       // Process as a multi-item cart checkout with Stripe
-      
-      // Prepare checkout data
-      const checkoutData = {
-        items: cartItems.map(item => ({
-          fundraiserId: item.fundraiserId,
-          quantity: item.quantity
-        })),
-        customerInfo
-      };
-      
       console.log("Submitting cart checkout data:", checkoutData);
       
       // Process checkout with Stripe
@@ -242,21 +257,12 @@ export default function CartPage() {
         description: `Processing payment of ${formatCurrency(amount)}`,
       });
       
-      // Store client secret and cart information in sessionStorage for payment page
+      // Store client secret and amount information in sessionStorage for payment page
       sessionStorage.setItem("cart_payment_client_secret", clientSecret);
       sessionStorage.setItem("cart_payment_amount", amount.toString());
-      sessionStorage.setItem("cart_customer_info", JSON.stringify(customerInfo));
       
-      // Store cart items for cash payment option
-      const cartItemsData = cartItems.map(item => ({
-        fundraiserId: item.fundraiserId,
-        quantity: item.quantity,
-        amount: item.price * item.quantity * 100 // Convert to cents
-      }));
-      sessionStorage.setItem("cart_items", JSON.stringify(cartItemsData));
-      
-      // Navigate to the cart payment page
-      window.location.href = "/payment/cart";
+      // Navigate to the cart payment page with Stripe method
+      window.location.href = "/payment/cart?method=stripe";
     } catch (error: any) {
       console.error("Checkout error:", error);
       toast({
@@ -455,6 +461,14 @@ export default function CartPage() {
                       <Label htmlFor="stripe" className="flex items-center">
                         <CreditCard className="mr-2 h-4 w-4" />
                         Credit Card (Stripe)
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 border rounded-md p-3">
+                      <RadioGroupItem value="paystack" id="paystack" />
+                      <Label htmlFor="paystack" className="flex items-center">
+                        <PaymentIcon className="mr-2 h-4 w-4" />
+                        Paystack
                       </Label>
                     </div>
                     
