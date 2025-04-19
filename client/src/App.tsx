@@ -15,6 +15,7 @@ import StudentFundraisersPage from "@/pages/student-fundraisers-page";
 import CheckoutPage from "@/pages/checkout-page";
 import PaymentSuccessPage from "@/pages/payment-success-page";
 import CartPage from "@/pages/cart-page";
+import CartPaymentPage from "@/pages/cart-payment-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 import { queryClient } from "./lib/queryClient";
@@ -90,6 +91,7 @@ function Router() {
         fallbackPath="/student/fundraisers"
       />
       <Route path="/cart" component={CartPage} />
+      <Route path="/payment/cart" component={CartPaymentPage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -140,45 +140,76 @@ export default function CartPage() {
     setIsLoading(true);
     
     try {
-      // For now, just redirect to the first fundraiser checkout
-      // In a real implementation, we'd create a single payment for all items
-      const firstItem = cartItems[0];
-      window.location.href = `/checkout/${firstItem.fundraiserId}?quantity=${firstItem.quantity}`;
+      // Check if we should process as a multi-item cart or single item checkout
+      if (cartItems.length === 1) {
+        // Single item checkout - use the existing checkout page
+        const item = cartItems[0];
+        window.location.href = `/checkout/${item.fundraiserId}?quantity=${item.quantity}`;
+        return;
+      }
       
-      // TODO: Eventually implement multi-item checkout
-      // This is a placeholder for future implementation
-      /*
+      // Process as a multi-item cart checkout
+      
       // Prepare checkout data
       const checkoutData = {
         items: cartItems.map(item => ({
           fundraiserId: item.fundraiserId,
           quantity: item.quantity
         })),
-        customerInfo,
-        paymentMethod
+        customerInfo
       };
       
-      // Process checkout with the selected payment method
-      if (paymentMethod === "stripe") {
-        // Navigate to Stripe checkout
-        window.location.href = `/checkout/multi`;
-      } else {
-        // Handle other payment methods
-        toast({
-          title: "Payment method not supported",
-          description: "The selected payment method is not yet supported.",
-          variant: "destructive"
-        });
+      console.log("Submitting cart checkout data:", checkoutData);
+      
+      // Process checkout with Stripe
+      const response = await fetch("/api/cart/create-payment-intent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(checkoutData),
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMsg;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMsg = errorJson.message || "Checkout failed";
+        } catch (e) {
+          errorMsg = errorText || `Server error: ${response.status}`;
+        }
+        throw new Error(errorMsg);
       }
-      */
-    } catch (error) {
+      
+      const { clientSecret, amount } = await response.json();
+      
+      if (!clientSecret) {
+        throw new Error("No client secret returned");
+      }
+      
+      toast({
+        title: "Redirecting to payment",
+        description: `Processing payment of ${formatCurrency(amount)}`,
+      });
+      
+      // Store client secret in sessionStorage for the payment page
+      sessionStorage.setItem("cart_payment_client_secret", clientSecret);
+      sessionStorage.setItem("cart_payment_amount", amount.toString());
+      sessionStorage.setItem("cart_customer_info", JSON.stringify(customerInfo));
+      
+      // Navigate to a payment confirmation page
+      // For now, we'll use a direct navigation, but ideally,
+      // we would add a cart-payment-page.tsx component in the future
+      window.location.href = "/payment/cart";
+    } catch (error: any) {
       console.error("Checkout error:", error);
       toast({
         title: "Checkout failed",
-        description: "There was an error processing your checkout. Please try again.",
+        description: error.message || "There was an error processing your checkout. Please try again.",
         variant: "destructive"
       });
-    } finally {
       setIsLoading(false);
     }
   };

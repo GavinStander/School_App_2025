@@ -605,6 +605,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message || "Could not process payment" });
     }
   });
+  
+  // Cart checkout - create payment intent for multiple items
+  app.post("/api/cart/create-payment-intent", async (req, res) => {
+    // Log the request details to help debug
+    console.log("Cart payment intent request received:", {
+      body: req.body,
+      isAuthenticated: req.isAuthenticated(),
+      user: req.isAuthenticated() && req.user ? { id: req.user.id } : null,
+    });
+    
+    try {
+      const { items, customerInfo } = req.body;
+      
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ message: "Cart items are required" });
+      }
+      
+      // Validate customer info
+      if (!customerInfo || !customerInfo.name || !customerInfo.email) {
+        return res.status(400).json({ message: "Customer information is required" });
+      }
+      
+      // Fixed ticket price (in cents)
+      const ticketPrice = 1000; // $10 in cents
+      
+      // Calculate total amount and prepare item details
+      let totalAmount = 0;
+      const itemDetails = [];
+      
+      for (const item of items) {
+        if (!item.fundraiserId || !item.quantity || item.quantity < 1) {
+          return res.status(400).json({ message: "Invalid item data" });
+        }
+        
+        // Validate quantity to prevent abuse
+        if (item.quantity > 10) {
+          return res.status(400).json({ message: "Maximum 10 tickets per fundraiser" });
+        }
+        
+        // Get fundraiser details
+        const fundraiser = await storage.getFundraiser(item.fundraiserId);
+        if (!fundraiser) {
+          return res.status(400).json({ message: `Fundraiser with ID ${item.fundraiserId} not found` });
+        }
+        
+        // Make sure fundraiser is active
+        if (!fundraiser.isActive) {
+          return res.status(400).json({ message: `Fundraiser '${fundraiser.name}' is not currently active` });
+        }
+        
+        // Calculate item amount
+        const itemAmount = ticketPrice * item.quantity;
+        totalAmount += itemAmount;
+        
+        // Add to item details
+        itemDetails.push({
+          fundraiserId: item.fundraiserId,
+          name: fundraiser.name,
+          quantity: item.quantity,
+          amount: itemAmount
+        });
+      }
+      
+      try {
+        // Create payment intent metadata
+        const metadata: Record<string, string> = {
+          cartItems: JSON.stringify(itemDetails),
+          customerName: customerInfo.name || "",
+          customerEmail: customerInfo.email || "",
+          itemCount: items.length.toString()
+        };
+        
+        // Add optional info
+        if (customerInfo.phone) {
+          metadata.customerPhone = customerInfo.phone;
+        }
+        
+        // Add user ID if authenticated
+        if (req.isAuthenticated() && req.user && req.user.id) {
+          metadata.userId = req.user.id.toString();
+        }
+        
+        // Create a payment intent
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: totalAmount,
+          currency: "usd",
+          metadata,
+        });
+        
+        // Return the client secret to the client
+        res.json({
+          clientSecret: paymentIntent.client_secret,
+          amount: totalAmount / 100, // Convert back to dollars for display
+        });
+      } catch (stripeError: any) {
+        console.error("Stripe API error:", stripeError);
+        const errorMessage = stripeError.message || "Payment processing error";
+        return res.status(400).json({ message: errorMessage });
+      }
+    } catch (error: any) {
+      console.error("Error creating cart payment intent:", error);
+      res.status(500).json({ message: error.message || "Could not process payment" });
+    }
+  });
 
   // Stripe webhook for handling payment events
   app.post("/api/stripe-webhook", async (req, res) => {
@@ -631,45 +735,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Extract metadata
         const metadata = paymentIntent.metadata || {};
-        const {
-          fundraiserId,
-          quantity,
-          customerName,
-          customerEmail,
-          customerPhone,
-          userId
-        } = metadata;
         
-        console.log('Payment succeeded - creating ticket purchase record:', metadata);
+        console.log('Payment succeeded - processing payment record:', metadata);
         
-        // Find student ID if the user is a student
-        let studentId = null;
-        if (userId) {
-          const user = await storage.getUser(parseInt(userId, 10));
-          if (user && user.role === UserRole.STUDENT) {
-            const student = await storage.getStudentByUserId(user.id);
-            if (student) {
-              studentId = student.id;
-            }
-          }
+        // Check if this is a cart payment (multiple items)
+        if (metadata.cartItems) {
+          // Handle cart purchase - multiple fundraisers
+          await handleCartPaymentSuccess(paymentIntent, metadata);
+        } else {
+          // Handle single fundraiser purchase
+          await handleSinglePaymentSuccess(paymentIntent, metadata);
         }
         
-        // Record the ticket purchase
-        await storage.createTicketPurchase({
-          fundraiserId: parseInt(fundraiserId, 10),
-          studentId: studentId ? studentId : null,
-          customerName,
-          customerEmail,
-          customerPhone: customerPhone || null,
-          quantity: parseInt(quantity, 10),
-          amount: paymentIntent.amount,
-          paymentIntentId: paymentIntent.id,
-          paymentStatus: 'completed'
-        });
-        
-        console.log('Ticket purchase recorded successfully');
+        console.log('Payment processing completed successfully');
       } catch (error) {
-        console.error('Error recording ticket purchase:', error);
+        console.error('Error processing payment success:', error);
         // We still return 200 to Stripe as we don't want them to retry
       }
     }
@@ -677,6 +757,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Return a 200 response to acknowledge receipt of the event
     res.json({received: true});
   });
+  
+  // Helper function to handle cart payment success (multiple items)
+  async function handleCartPaymentSuccess(paymentIntent: any, metadata: any) {
+    try {
+      const {
+        cartItems,
+        customerName,
+        customerEmail,
+        customerPhone,
+        userId
+      } = metadata;
+      
+      // Parse cart items
+      const items = JSON.parse(cartItems);
+      if (!Array.isArray(items) || items.length === 0) {
+        throw new Error('Invalid cart items data');
+      }
+      
+      // Find student ID if the user is a student
+      let studentId = null;
+      if (userId) {
+        const user = await storage.getUser(parseInt(userId, 10));
+        if (user && user.role === UserRole.STUDENT) {
+          const student = await storage.getStudentByUserId(user.id);
+          if (student) {
+            studentId = student.id;
+          }
+        }
+      }
+      
+      // Record each ticket purchase separately
+      for (const item of items) {
+        await storage.createTicketPurchase({
+          fundraiserId: item.fundraiserId,
+          studentId: studentId ? studentId : null,
+          customerName,
+          customerEmail, 
+          customerPhone: customerPhone || null,
+          quantity: item.quantity,
+          amount: item.amount,
+          paymentIntentId: paymentIntent.id,
+          paymentStatus: 'completed'
+        });
+      }
+      
+      console.log(`Successfully recorded ${items.length} ticket purchases from cart`);
+    } catch (error) {
+      console.error('Error handling cart payment success:', error);
+      throw error;
+    }
+  }
+  
+  // Helper function to handle single fundraiser payment success
+  async function handleSinglePaymentSuccess(paymentIntent: any, metadata: any) {
+    try {
+      const {
+        fundraiserId,
+        quantity,
+        customerName,
+        customerEmail,
+        customerPhone,
+        userId
+      } = metadata;
+      
+      if (!fundraiserId || !quantity) {
+        throw new Error('Missing required payment metadata');
+      }
+      
+      // Find student ID if the user is a student
+      let studentId = null;
+      if (userId) {
+        const user = await storage.getUser(parseInt(userId, 10));
+        if (user && user.role === UserRole.STUDENT) {
+          const student = await storage.getStudentByUserId(user.id);
+          if (student) {
+            studentId = student.id;
+          }
+        }
+      }
+      
+      // Record the ticket purchase
+      await storage.createTicketPurchase({
+        fundraiserId: parseInt(fundraiserId, 10),
+        studentId: studentId ? studentId : null,
+        customerName,
+        customerEmail,
+        customerPhone: customerPhone || null,
+        quantity: parseInt(quantity, 10),
+        amount: paymentIntent.amount,
+        paymentIntentId: paymentIntent.id,
+        paymentStatus: 'completed'
+      });
+      
+      console.log('Single ticket purchase recorded successfully');
+    } catch (error) {
+      console.error('Error handling single payment success:', error);
+      throw error;
+    }
+  }
 
   // Get sales summary for a student
   app.get("/api/student/sales-summary", isAuthenticated, async (req, res) => {

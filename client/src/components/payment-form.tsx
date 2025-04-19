@@ -10,9 +10,11 @@ import { useAuth } from "@/hooks/use-auth";
 
 interface PaymentFormProps {
   fundraiserId: number;
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
 }
 
-export default function PaymentForm({ fundraiserId }: PaymentFormProps) {
+export default function PaymentForm({ fundraiserId, onSuccess, onError }: PaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [, navigate] = useLocation();
@@ -65,14 +67,20 @@ export default function PaymentForm({ fundraiserId }: PaymentFormProps) {
       
       if (result.error) {
         // Show error and remain on page
-        setPaymentError(result.error.message || "An error occurred during payment processing");
+        const errorMessage = result.error.message || "An error occurred during payment processing";
+        setPaymentError(errorMessage);
         setPaymentStatus("error");
         
         toast({
           title: "Payment Failed",
-          description: result.error.message || "Your payment could not be processed",
+          description: errorMessage,
           variant: "destructive",
         });
+        
+        // Call onError callback if provided
+        if (onError) {
+          onError(new Error(errorMessage));
+        }
       } else if (result.paymentIntent && result.paymentIntent.status === "succeeded") {
         // Payment succeeded!
         setPaymentStatus("success");
@@ -82,10 +90,15 @@ export default function PaymentForm({ fundraiserId }: PaymentFormProps) {
           description: "Your ticket purchase was successful!",
         });
         
-        // Redirect after a short delay
-        setTimeout(() => {
-          navigate(`/payment-success?fundraiser=${fundraiserId}`);
-        }, 2000);
+        // Call onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // Redirect after a short delay if no callback provided
+          setTimeout(() => {
+            navigate(`/payment-success?fundraiser=${fundraiserId}`);
+          }, 2000);
+        }
       } else if (result.paymentIntent) {
         // Handle other payment statuses
         switch (result.paymentIntent.status) {
@@ -106,33 +119,51 @@ export default function PaymentForm({ fundraiserId }: PaymentFormProps) {
             break;
             
           default:
+            const errorMessage = `Payment status: ${result.paymentIntent.status}. Please try again.`;
             setPaymentStatus("error");
-            setPaymentError(`Payment status: ${result.paymentIntent.status}. Please try again.`);
+            setPaymentError(errorMessage);
             toast({
               title: "Payment Not Completed",
               description: "Your payment could not be completed. Please try again.",
               variant: "destructive",
             });
+            
+            // Call onError callback if provided
+            if (onError) {
+              onError(new Error(errorMessage));
+            }
         }
       } else {
         // No result info
+        const errorMessage = "Unexpected payment response. Please try again.";
         setPaymentStatus("error");
-        setPaymentError("Unexpected payment response. Please try again.");
+        setPaymentError(errorMessage);
         toast({
           title: "Payment Error",
           description: "An unexpected error occurred. Please try again later.",
           variant: "destructive",
         });
+        
+        // Call onError callback if provided
+        if (onError) {
+          onError(new Error(errorMessage));
+        }
       }
     } catch (err: any) {
       console.error("Payment processing error:", err);
+      const errorMessage = err.message || "An unexpected error occurred";
       setPaymentStatus("error");
-      setPaymentError(err.message || "An unexpected error occurred");
+      setPaymentError(errorMessage);
       toast({
         title: "Error",
-        description: err.message || "An unexpected error occurred during payment processing",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      // Call onError callback if provided
+      if (onError) {
+        onError(err instanceof Error ? err : new Error(errorMessage));
+      }
     } finally {
       setIsProcessing(false);
     }
