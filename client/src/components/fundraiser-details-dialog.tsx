@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Fundraiser, School } from "@shared/schema";
-import { CalendarIcon, MapPinIcon, SchoolIcon, InfoIcon, TicketIcon } from "lucide-react";
+import { CalendarIcon, MapPinIcon, SchoolIcon, InfoIcon, TicketIcon, ShoppingCart } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 import {
@@ -153,6 +153,7 @@ export default function FundraiserDetailsDialog({
           <Button
             variant="default"
             className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+            size="lg"
             onClick={() => {
               // Add to cart first
               // Get existing cart from local storage
@@ -180,7 +181,8 @@ export default function FundraiserDetailsDialog({
               window.location.href = "/cart";
             }}
           >
-            Buy Tickets
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Add to Cart
           </Button>
           <Button onClick={() => setOpen(false)} variant="outline">Close</Button>
         </div>

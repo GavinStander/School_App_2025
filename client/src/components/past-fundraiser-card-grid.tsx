@@ -136,28 +136,14 @@ export default function PastFundraiserCardGrid({
             </CardContent>
             
             <CardFooter className="pt-2 flex flex-col gap-2">
-              <div className="flex justify-between w-full">
-                <FundraiserDetailsDialog
-                  fundraiserId={fundraiser.id}
-                  trigger={
-                    <Button variant="outline" size="sm">
-                      <InfoIcon className="h-4 w-4 mr-1" />
-                      View Details
-                    </Button>
-                  }
-                />
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => window.location.href = `/checkout/${fundraiser.id}`}
-                >
-                  <ArrowRightIcon className="h-4 w-4" />
-                </Button>
-              </div>
-              <AddToCartButton 
-                fundraiser={fundraiser} 
-                variant="outline"
-                className="w-full"
+              <FundraiserDetailsDialog
+                fundraiserId={fundraiser.id}
+                trigger={
+                  <Button variant="outline" className="w-full">
+                    <InfoIcon className="h-4 w-4 mr-1" />
+                    View Details & Buy Tickets
+                  </Button>
+                }
               />
             </CardFooter>
           </Card>
