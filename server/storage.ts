@@ -426,68 +426,21 @@ export class DatabaseStorage implements IStorage {
 
   async getTicketPurchasesByStudentId(studentId: number): Promise<TicketPurchase[]> {
     try {
-      // Get the student email for referral lookups
-      const student = await this.getStudent(studentId);
+      console.log(`Looking up ticket purchases for student ID: ${studentId}`);
       
-      if (!student) {
-        console.error("Student not found for ID:", studentId);
-        return [];
-      }
-      
-      // Get the user info to get the email address
-      const user = await this.getUser(student.userId);
-      
-      if (!user) {
-        console.error("User not found for student:", studentId);
-        return [];
-      }
-      
-      console.log(`Looking up ticket purchases for student ID: ${studentId} with email: ${user.email}`);
-      
-      // First check if student_email column actually exists
-      let hasStudentEmailColumn = false;
-      try {
-        const columnCheck = await db.execute(
-          sql`SELECT column_name 
-              FROM information_schema.columns 
-              WHERE table_name = 'ticket_purchases' 
-                AND column_name = 'student_email'`
-        );
-        hasStudentEmailColumn = columnCheck.length > 0;
-      } catch (e) {
-        console.error("Error checking for student_email column:", e);
-      }
-      
-      let result;
-      if (hasStudentEmailColumn) {
-        // Use query with student_email if the column exists
-        result = await db.execute(
-          sql`SELECT 
-              id, fundraiser_id as "fundraiserId", student_id as "studentId", 
-              customer_name as "customerName", customer_email as "customerEmail",
-              quantity, amount, 
-              payment_intent_id as "paymentIntentId", 
-              payment_status as "paymentStatus", payment_method as "paymentMethod",
-              created_at as "createdAt"
-            FROM ticket_purchases 
-            WHERE student_id = ${studentId} 
-            ORDER BY created_at DESC`
-        );
-      } else {
-        // Fallback to just using student_id
-        result = await db.execute(
-          sql`SELECT 
-              id, fundraiser_id as "fundraiserId", student_id as "studentId", 
-              customer_name as "customerName", customer_email as "customerEmail", 
-              quantity, amount, 
-              payment_intent_id as "paymentIntentId", 
-              payment_status as "paymentStatus", payment_method as "paymentMethod",
-              created_at as "createdAt"
-            FROM ticket_purchases 
-            WHERE student_id = ${studentId} 
-            ORDER BY created_at DESC`
-        );
-      }
+      // Simplified query - only select the columns we know exist
+      const result = await db.execute(
+        sql`SELECT 
+            id, fundraiser_id as "fundraiserId", student_id as "studentId", 
+            customer_name as "customerName", customer_email as "customerEmail",
+            quantity, amount, 
+            payment_intent_id as "paymentIntentId", 
+            payment_status as "paymentStatus", payment_method as "paymentMethod",
+            created_at as "createdAt"
+          FROM ticket_purchases 
+          WHERE student_id = ${studentId} 
+          ORDER BY created_at DESC`
+      );
       
       console.log(`Found ${result.length} ticket purchases`);
       return result as TicketPurchase[];
