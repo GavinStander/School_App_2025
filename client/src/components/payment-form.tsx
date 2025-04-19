@@ -53,14 +53,6 @@ export default function PaymentForm({ fundraiserId, onSuccess, onError }: Paymen
         confirmParams: {
           // Make sure to include the fundraiser ID in the redirect URL
           return_url: `${window.location.origin}/payment-success?fundraiser=${fundraiserId}`,
-          // Add the user ID in payment metadata if user is logged in
-          payment_method_data: {
-            metadata: {
-              fundraiserId: fundraiserId.toString(),
-              // Include user ID if user is logged in
-              ...(user ? { userId: user.id.toString() } : {}),
-            }
-          }
         },
         redirect: "if_required",
       });

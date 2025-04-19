@@ -80,6 +80,10 @@ export default function CheckoutPage() {
       console.log("Customer info submitted:", info);
       setCustomerInfo(info);
       
+      // Store quantity and customer info in sessionStorage for cash payment
+      sessionStorage.setItem("ticket_quantity", quantity.toString());
+      sessionStorage.setItem("cart_customer_info", JSON.stringify(info));
+      
       // Create payment intent
       console.log("Creating payment intent with data:", {
         fundraiserId: parseInt(fundraiserId!),

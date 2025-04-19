@@ -194,10 +194,18 @@ export default function CartPage() {
         description: `Processing payment of ${formatCurrency(amount)}`,
       });
       
-      // Store client secret in sessionStorage for the payment page
+      // Store client secret and cart information in sessionStorage for payment page
       sessionStorage.setItem("cart_payment_client_secret", clientSecret);
       sessionStorage.setItem("cart_payment_amount", amount.toString());
       sessionStorage.setItem("cart_customer_info", JSON.stringify(customerInfo));
+      
+      // Store cart items for cash payment option
+      const cartItemsData = cartItems.map(item => ({
+        fundraiserId: item.fundraiserId,
+        quantity: item.quantity,
+        amount: item.price * item.quantity * 100 // Convert to cents
+      }));
+      sessionStorage.setItem("cart_items", JSON.stringify(cartItemsData));
       
       // Navigate to the cart payment page
       window.location.href = "/payment/cart";

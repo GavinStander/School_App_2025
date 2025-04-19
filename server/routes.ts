@@ -897,6 +897,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Cash payment endpoint for single fundraiser
+  app.post("/api/cash-payment", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is a student or school admin (only they can record cash payments)
+      if (req.user.role !== UserRole.STUDENT && req.user.role !== UserRole.SCHOOL) {
+        return res.status(403).json({ message: "Only students and school admins can record cash payments" });
+      }
+      
+      const { fundraiserId, quantity, customerInfo } = req.body;
+      
+      if (!fundraiserId || !quantity || quantity < 1) {
+        return res.status(400).json({ message: "Missing or invalid parameters" });
+      }
+      
+      // Validate quantity to prevent abuse
+      if (quantity > 10) {
+        return res.status(400).json({ message: "Maximum 10 tickets per order" });
+      }
+      
+      // Validate customer info
+      if (!customerInfo || !customerInfo.name || !customerInfo.email) {
+        return res.status(400).json({ message: "Customer information is required" });
+      }
+      
+      // Get fundraiser details
+      const fundraiser = await storage.getFundraiser(fundraiserId);
+      if (!fundraiser) {
+        return res.status(404).json({ message: "Fundraiser not found" });
+      }
+      
+      // Fixed price at $10 per ticket (in cents)
+      const ticketPrice = 1000;
+      const amount = ticketPrice * quantity;
+      
+      // Find student ID if the user is a student
+      let studentId = null;
+      if (req.user.role === UserRole.STUDENT) {
+        const student = await storage.getStudentByUserId(req.user.id);
+        if (student) {
+          studentId = student.id;
+        }
+      }
+      
+      // Create a payment record for cash payment
+      const paymentId = `cash_payment_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
+      // Record the ticket purchase
+      const ticketPurchase = await storage.createTicketPurchase({
+        fundraiserId: parseInt(fundraiserId, 10),
+        studentId: studentId,
+        customerName: customerInfo.name,
+        customerEmail: customerInfo.email,
+        customerPhone: customerInfo.phone || null,
+        quantity: parseInt(quantity, 10),
+        amount: amount,
+        paymentIntentId: paymentId,
+        paymentStatus: "completed"
+      });
+      
+      res.status(201).json({
+        success: true,
+        message: "Cash payment recorded successfully",
+        ticketPurchase
+      });
+    } catch (error) {
+      console.error("Error processing cash payment:", error);
+      res.status(500).json({ message: "Failed to process cash payment" });
+    }
+  });
+  
+  // Cash payment endpoint for cart purchases
+  app.post("/api/cart/cash-payment", isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is a student or school admin (only they can record cash payments)
+      if (req.user.role !== UserRole.STUDENT && req.user.role !== UserRole.SCHOOL) {
+        return res.status(403).json({ message: "Only students and school admins can record cash payments" });
+      }
+      
+      const { items, customerInfo } = req.body;
+      
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ message: "Cart items are required" });
+      }
+      
+      // Validate customer info
+      if (!customerInfo || !customerInfo.name || !customerInfo.email) {
+        return res.status(400).json({ message: "Customer information is required" });
+      }
+      
+      // Fixed ticket price (in cents)
+      const ticketPrice = 1000; // $10 in cents
+      
+      // Generate a unique cash payment identifier
+      const paymentId = `cash_payment_cart_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
+      // Find student ID if the user is a student
+      let studentId = null;
+      if (req.user.role === UserRole.STUDENT) {
+        const student = await storage.getStudentByUserId(req.user.id);
+        if (student) {
+          studentId = student.id;
+        }
+      }
+      
+      // Record each ticket purchase separately
+      const ticketPurchases = [];
+      for (const item of items) {
+        if (!item.fundraiserId || !item.quantity || item.quantity < 1) {
+          return res.status(400).json({ message: "Invalid item data" });
+        }
+        
+        // Validate quantity to prevent abuse
+        if (item.quantity > 10) {
+          return res.status(400).json({ message: "Maximum 10 tickets per fundraiser" });
+        }
+        
+        // Get fundraiser details
+        const fundraiser = await storage.getFundraiser(item.fundraiserId);
+        if (!fundraiser) {
+          return res.status(400).json({ message: `Fundraiser with ID ${item.fundraiserId} not found` });
+        }
+        
+        // Calculate amount for this item
+        const itemAmount = ticketPrice * item.quantity;
+        
+        // Record this purchase
+        const purchase = await storage.createTicketPurchase({
+          fundraiserId: item.fundraiserId,
+          studentId: studentId,
+          customerName: customerInfo.name,
+          customerEmail: customerInfo.email,
+          customerPhone: customerInfo.phone || null,
+          quantity: item.quantity,
+          amount: itemAmount,
+          paymentIntentId: paymentId, // Same ID for all items in cart
+          paymentStatus: "completed"
+        });
+        
+        ticketPurchases.push(purchase);
+      }
+      
+      res.status(201).json({
+        success: true,
+        message: `Successfully recorded ${ticketPurchases.length} cash payments from cart`,
+        ticketPurchases
+      });
+    } catch (error) {
+      console.error("Error processing cart cash payment:", error);
+      res.status(500).json({ message: "Failed to process cart cash payment" });
+    }
+  });
+  
   // Test endpoint to create a ticket purchase (for development only)
   app.post("/api/test/create-ticket-purchase", isAuthenticated, async (req, res) => {
     try {
