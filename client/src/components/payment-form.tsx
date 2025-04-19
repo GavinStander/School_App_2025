@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
 import { useLocation } from "wouter";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, DollarSign } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { apiRequest } from "@/lib/queryClient";
 
 interface PaymentFormProps {
   fundraiserId: number;
@@ -184,8 +186,111 @@ export default function PaymentForm({ fundraiserId, onSuccess, onError }: Paymen
     );
   }
   
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("card");
+  const [processingCash, setProcessingCash] = useState(false);
+  
+  const handleCashPayment = async () => {
+    setProcessingCash(true);
+    setPaymentError("");
+    try {
+      // Get cart info from session storage (for cart payments)
+      const cartItemsStr = sessionStorage.getItem("cart_items");
+      const customerInfoStr = sessionStorage.getItem("cart_customer_info");
+      
+      let endpoint, requestData;
+      
+      // Determine if it's a single fundraiser or cart checkout
+      if (fundraiserId > 0) {
+        // Single fundraiser checkout
+        const quantity = Number(sessionStorage.getItem("ticket_quantity") || "1");
+        const customerInfo = customerInfoStr ? JSON.parse(customerInfoStr) : null;
+        
+        endpoint = "/api/cash-payment";
+        requestData = {
+          fundraiserId,
+          quantity,
+          customerInfo: customerInfo || {
+            name: user?.username || "Guest",
+            email: user?.email || "guest@example.com"
+          }
+        };
+      } else {
+        // Cart checkout
+        const cartItems = cartItemsStr ? JSON.parse(cartItemsStr) : [];
+        const customerInfo = customerInfoStr ? JSON.parse(customerInfoStr) : null;
+        
+        endpoint = "/api/cart/cash-payment";
+        requestData = {
+          items: cartItems,
+          customerInfo: customerInfo || {
+            name: user?.username || "Guest",
+            email: user?.email || "guest@example.com"
+          }
+        };
+      }
+      
+      // Make the API request to process cash payment
+      const response = await apiRequest("POST", endpoint, requestData);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to process cash payment");
+      }
+      
+      const result = await response.json();
+      
+      // Success handling
+      setPaymentStatus("success");
+      
+      // Clear session storage
+      if (fundraiserId === 0) { // For cart payments
+        localStorage.removeItem("fundraiser-cart");
+        sessionStorage.removeItem("cart_payment_client_secret");
+        sessionStorage.removeItem("cart_payment_amount");
+        sessionStorage.removeItem("cart_customer_info");
+        sessionStorage.removeItem("cart_items");
+      }
+      
+      toast({
+        title: "Cash Payment Recorded",
+        description: "Your order has been processed as a cash payment.",
+      });
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        // Redirect after a short delay if no callback provided
+        setTimeout(() => {
+          navigate(fundraiserId > 0 
+            ? `/payment-success?fundraiser=${fundraiserId}` 
+            : "/payment-success");
+        }, 2000);
+      }
+    } catch (err: any) {
+      console.error("Cash payment error:", err);
+      const errorMessage = err.message || "An unexpected error occurred";
+      
+      setPaymentStatus("error");
+      setPaymentError(errorMessage);
+      
+      toast({
+        title: "Cash Payment Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      
+      // Call onError callback if provided
+      if (onError) {
+        onError(err instanceof Error ? err : new Error(errorMessage));
+      }
+    } finally {
+      setProcessingCash(false);
+    }
+  };
+  
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       {paymentStatus === "error" && (
         <Alert variant="destructive">
           <AlertTitle>Payment Error</AlertTitle>
@@ -193,25 +298,60 @@ export default function PaymentForm({ fundraiserId, onSuccess, onError }: Paymen
         </Alert>
       )}
       
-      <PaymentElement />
-      
-      <div className="pt-4">
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={!stripe || !elements || isProcessing}
-        >
-          {isProcessing ? "Processing..." : "Complete Purchase"}
-        </Button>
-      </div>
-      
-      <div className="mt-4 text-center text-sm text-muted-foreground">
-        <p>
-          This is a test payment. You can use the test card number: 
-          <span className="font-mono bg-muted px-1 mx-1">4242 4242 4242 4242</span>
-        </p>
-        <p>Use any future date for expiry and any 3 digits for CVC.</p>
-      </div>
-    </form>
+      <Tabs defaultValue="card" onValueChange={(v) => setPaymentMethod(v as "card" | "cash")} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="card">Credit Card</TabsTrigger>
+          <TabsTrigger value="cash">Cash Payment</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="card">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <PaymentElement />
+            
+            <div className="pt-4">
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={!stripe || !elements || isProcessing}
+              >
+                {isProcessing ? "Processing..." : "Complete Credit Card Purchase"}
+              </Button>
+            </div>
+            
+            <div className="mt-4 text-center text-sm text-muted-foreground">
+              <p>
+                This is a test payment. You can use the test card number: 
+                <span className="font-mono bg-muted px-1 mx-1">4242 4242 4242 4242</span>
+              </p>
+              <p>Use any future date for expiry and any 3 digits for CVC.</p>
+            </div>
+          </form>
+        </TabsContent>
+        
+        <TabsContent value="cash">
+          <div className="space-y-6 py-4">
+            <div className="rounded-lg bg-muted p-6 text-center">
+              <DollarSign className="h-12 w-12 mx-auto mb-4 text-primary" />
+              <h3 className="text-lg font-medium mb-2">Cash Payment Option</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Select this option to record a cash payment. This should be used when the customer will pay in cash directly.
+              </p>
+              
+              <Button 
+                onClick={handleCashPayment}
+                className="w-full bg-primary"
+                disabled={processingCash}
+              >
+                {processingCash ? "Processing..." : "Record Cash Payment"}
+              </Button>
+            </div>
+            
+            <p className="text-sm text-muted-foreground">
+              Note: Cash payment records are tracked internally and linked to the student who recorded the sale.
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
