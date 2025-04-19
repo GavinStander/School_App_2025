@@ -23,6 +23,8 @@ import { useToast } from "@/hooks/use-toast";
 import CustomerInfoForm from "@/components/customer-info-form";
 import PaymentForm from "@/components/payment-form";
 import { apiRequest } from "@/lib/queryClient";
+import DashboardLayout from "@/components/dashboard-layout";
+import { useAuth } from "@/hooks/use-auth";
 
 // Initialize Stripe
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
