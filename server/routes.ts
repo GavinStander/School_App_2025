@@ -532,7 +532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       user: req.isAuthenticated() && req.user ? { id: req.user.id } : null,
     });
     try {
-      const { fundraiserId, quantity, customerInfo } = req.body;
+      const { fundraiserId, quantity, customerInfo, studentId, referral } = req.body;
       
       if (!fundraiserId || !quantity || quantity < 1) {
         return res.status(400).json({ message: "Missing or invalid parameters" });
@@ -577,6 +577,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Add optional info
         if (customerInfo.phone) {
           metadata.customerPhone = customerInfo.phone;
+        }
+        
+        // Add student referral info if available
+        if (studentId) {
+          metadata.studentId = studentId.toString();
+        }
+        
+        // Add referral type if available
+        if (referral) {
+          metadata.referralType = referral;
         }
         
         // Add user ID if authenticated
@@ -660,13 +670,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const itemAmount = ticketPrice * item.quantity;
         totalAmount += itemAmount;
         
-        // Add to item details
-        itemDetails.push({
+        // Prepare item details with referral information if available
+        const itemDetail: any = {
           fundraiserId: item.fundraiserId,
           name: fundraiser.name,
           quantity: item.quantity,
           amount: itemAmount
-        });
+        };
+        
+        // Include student referral info if available
+        if (item.studentId) {
+          itemDetail.studentId = item.studentId;
+        }
+        
+        // Include referral type if available
+        if (item.referral) {
+          itemDetail.referralType = item.referral;
+        }
+        
+        // Add to item details
+        itemDetails.push(itemDetail);
       }
       
       try {

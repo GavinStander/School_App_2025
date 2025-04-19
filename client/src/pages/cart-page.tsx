@@ -22,6 +22,9 @@ interface CartItem {
   location: string;
   quantity: number;
   price: number;
+  studentId?: number | null;
+  referral?: string | null;
+  customerEmail?: string;
 }
 
 // Interface for customer information
@@ -55,6 +58,17 @@ export default function CartPage() {
       try {
         const parsedCart = JSON.parse(storedCart);
         setCartItems(parsedCart);
+        
+        // Check if any cart item has a customer email (from public share link)
+        const firstItemWithEmail = parsedCart.find(item => item.customerEmail);
+        if (firstItemWithEmail?.customerEmail && !user) {
+          // Pre-fill email for guest users if available from cart
+          setCustomerInfo({
+            name: "",
+            email: firstItemWithEmail.customerEmail,
+            phone: ""
+          });
+        }
       } catch (error) {
         console.error("Error parsing cart from localStorage:", error);
         // Clear invalid cart data
