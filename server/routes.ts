@@ -1018,10 +1018,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         studentId: studentId,
         customerName: customerInfo.name,
         customerEmail: customerInfo.email,
+        customerPhone: customerInfo.phone,
         quantity: parseInt(quantity, 10),
         amount: amount,
         paymentIntentId: paymentId,
-        paymentStatus: "completed"
+        paymentStatus: "completed",
+        paymentMethod: "cash",
+        studentEmail: customerInfo.studentEmail,
+        ticketInfo: customerInfo.ticketInfo
       });
       
       res.status(201).json({
@@ -1111,10 +1115,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           studentId: purchaseStudentId,
           customerName: customerInfo.name,
           customerEmail: customerInfo.email,
+          customerPhone: customerInfo.phone,
           quantity: item.quantity,
           amount: itemAmount,
           paymentIntentId: paymentId, // Same ID for all items in cart
-          paymentStatus: "completed"
+          paymentStatus: "completed",
+          paymentMethod: "cash",
+          studentEmail: customerInfo.studentEmail,
+          ticketInfo: customerInfo.ticketInfo
         });
         
         ticketPurchases.push(purchase);

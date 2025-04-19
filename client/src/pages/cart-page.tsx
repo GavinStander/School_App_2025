@@ -431,6 +431,16 @@ export default function CartPage() {
                       <span className="font-semibold">Phone:</span> {customerInfo?.phone}
                     </p>
                   )}
+                  {customerInfo?.studentEmail && (
+                    <p>
+                      <span className="font-semibold">Student Email:</span> {customerInfo?.studentEmail}
+                    </p>
+                  )}
+                  {customerInfo?.ticketInfo && (
+                    <p>
+                      <span className="font-semibold">Ticket Info:</span> {customerInfo?.ticketInfo}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>

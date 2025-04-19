@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle, Calendar, MapPin, Users } from "lucide-react";
+import { CheckCircle, Calendar, MapPin, Users, Home, Tag, User } from "lucide-react";
 import { Fundraiser, School } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,7 @@ export default function PaymentSuccessPage() {
   const [location] = useLocation();
   const searchParams = new URLSearchParams(location.split("?")[1]);
   const fundraiserId = searchParams.get("fundraiser");
+  const { user } = useAuth();
   
   // Fetch fundraiser details if ID is available
   const { data: fundraiser } = useQuery<Fundraiser>({
@@ -34,6 +36,22 @@ export default function PaymentSuccessPage() {
   
   // Generate a random confirmation number
   const confirmationCode = `SCH${Math.floor(100000 + Math.random() * 900000)}`;
+  
+  // Determine which dashboard to redirect to based on user role
+  const getDashboardLink = () => {
+    if (!user) return "/";
+    
+    switch (user.role) {
+      case "ADMIN":
+        return "/admin/dashboard";
+      case "SCHOOL":
+        return "/school/dashboard";
+      case "STUDENT":
+        return "/student/dashboard";
+      default:
+        return "/";
+    }
+  };
   
   return (
     <div className="container max-w-2xl mx-auto py-12">
@@ -103,12 +121,44 @@ export default function PaymentSuccessPage() {
         </CardContent>
         
         <CardFooter className="flex flex-col space-y-2">
-          <Button asChild className="w-full">
-            <Link to="/student/dashboard">Back to Dashboard</Link>
-          </Button>
-          <Button asChild variant="outline" className="w-full">
-            <Link to="/student/fundraisers">View More Fundraisers</Link>
-          </Button>
+          {user ? (
+            <>
+              <Button asChild className="w-full">
+                <Link to={getDashboardLink()}>
+                  <User className="mr-2 h-4 w-4" />
+                  Back to Dashboard
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                {user.role === "STUDENT" ? (
+                  <Link to="/student/fundraisers">
+                    <Tag className="mr-2 h-4 w-4" />
+                    View More Fundraisers
+                  </Link>
+                ) : (
+                  <Link to={`/${user.role.toLowerCase()}/fundraisers`}>
+                    <Tag className="mr-2 h-4 w-4" />
+                    Manage Fundraisers
+                  </Link>
+                )}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild className="w-full">
+                <Link to="/">
+                  <Home className="mr-2 h-4 w-4" />
+                  Back to Home
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link to="/auth">
+                  <User className="mr-2 h-4 w-4" />
+                  Sign In
+                </Link>
+              </Button>
+            </>
+          )}
         </CardFooter>
       </Card>
     </div>
