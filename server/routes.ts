@@ -950,7 +950,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         studentId: studentId,
         customerName: customerInfo.name,
         customerEmail: customerInfo.email,
-        customerPhone: customerInfo.phone || null,
         quantity: parseInt(quantity, 10),
         amount: amount,
         paymentIntentId: paymentId,
@@ -1026,7 +1025,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           studentId: studentId,
           customerName: customerInfo.name,
           customerEmail: customerInfo.email,
-          customerPhone: customerInfo.phone || null,
           quantity: item.quantity,
           amount: itemAmount,
           paymentIntentId: paymentId, // Same ID for all items in cart
@@ -1070,7 +1068,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         studentId: student.id,
         customerName: req.user.username || "Test Customer",
         customerEmail: req.user.email || "test@example.com",
-        customerPhone: null,
         quantity: parseInt(quantity, 10),
         amount: parseInt(amount, 10) * 100, // Convert to cents
         paymentIntentId: `test_pi_${Date.now()}`,
@@ -1146,7 +1143,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         studentId: studentId,
         customerName: customerInfo.name,
         customerEmail: customerInfo.email,
-        customerPhone: customerInfo.phone || null,
         quantity: parseInt(quantity, 10),
         amount: amount,
         paymentIntentId: reference,
@@ -1242,7 +1238,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           studentId: studentId,
           customerName: customerInfo.name,
           customerEmail: customerInfo.email,
-          customerPhone: customerInfo.phone || null,
           quantity: item.quantity,
           amount: itemAmount,
           paymentIntentId: reference, // Same reference for all items in cart
