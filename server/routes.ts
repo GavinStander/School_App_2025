@@ -255,9 +255,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const fundraisers = await storage.getFundraisersBySchoolId(student.schoolId);
-      res.json(fundraisers);
+      
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Filter for current and upcoming fundraisers (event date is today or later)
+      const upcomingFundraisers = fundraisers.filter(fundraiser => {
+        return fundraiser.eventDate >= today;
+      });
+      
+      res.json(upcomingFundraisers);
     } catch (error) {
+      console.error("Error fetching student fundraisers:", error);
       res.status(500).json({ message: "Failed to get fundraisers" });
+    }
+  });
+  
+  // Get past fundraisers for a student
+  app.get("/api/student/past-fundraisers", isAuthenticated, hasRole(UserRole.STUDENT), async (req, res) => {
+    try {
+      const student = await storage.getStudentByUserId(req.user.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      const fundraisers = await storage.getFundraisersBySchoolId(student.schoolId);
+      
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Filter for past events (event date is before today)
+      const pastFundraisers = fundraisers.filter(fundraiser => {
+        return fundraiser.eventDate < today;
+      });
+      
+      res.json(pastFundraisers);
+    } catch (error) {
+      console.error("Error fetching past fundraisers:", error);
+      res.status(500).json({ message: "Could not retrieve past fundraisers" });
     }
   });
 

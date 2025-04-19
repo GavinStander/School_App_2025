@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Loader2, Ticket, DollarSign, BarChart, PlusCircle } from "lucide-react";
 import FundraiserCardGrid from "@/components/fundraiser-card-grid";
+import PastFundraiserCardGrid from "@/components/past-fundraiser-card-grid";
 import { formatCurrency } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -192,13 +193,31 @@ export default function StudentDashboard() {
       {/* School Fundraisers */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">School Fundraisers</h2>
+          <h2 className="text-lg font-bold text-gray-900">Upcoming Fundraisers</h2>
           <Button variant="outline" asChild>
             <a href="/student/fundraisers">View All</a>
           </Button>
         </div>
         
         <FundraiserCardGrid limit={3} showHeader={false} />
+      </div>
+      
+      {/* Past Fundraisers */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Past Events (History)</h2>
+          <Button variant="outline" size="sm">
+            View All Past Events
+          </Button>
+        </div>
+        
+        <div className="border rounded-lg p-4 bg-muted/10">
+          <p className="text-sm text-muted-foreground mb-4">
+            These events have already taken place, but you can still purchase tickets to support your school.
+          </p>
+          
+          <PastFundraiserCardGrid limit={3} showHeader={false} />
+        </div>
       </div>
       
       {/* School Updates */}
