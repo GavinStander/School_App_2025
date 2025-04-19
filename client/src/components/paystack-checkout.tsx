@@ -55,7 +55,7 @@ export default function PaystackCheckout({
     // Create and load new script
     const script = document.createElement('script');
     script.id = 'paystack-script';
-    script.src = 'https://js.paystack.co/v1/inline.js';
+    script.src = 'https://js.paystack.co/v2/inline.js';
     script.async = true;
     
     script.onload = () => {
@@ -92,7 +92,7 @@ export default function PaystackCheckout({
         
         const newScript = document.createElement('script');
         newScript.id = 'paystack-script-retry';
-        newScript.src = 'https://js.paystack.co/v1/inline.js';
+        newScript.src = 'https://js.paystack.co/v2/inline.js';
         newScript.async = false; // Use synchronous loading as a fallback
         newScript.onload = () => {
           console.log('Paystack script loaded successfully on retry');

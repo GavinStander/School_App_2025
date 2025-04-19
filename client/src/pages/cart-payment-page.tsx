@@ -313,7 +313,7 @@ export default function CartPaymentPage() {
                     if (typeof window.PaystackPop === 'undefined') {
                       console.log("Loading Paystack script directly...");
                       const script = document.createElement('script');
-                      script.src = 'https://js.paystack.co/v1/inline.js';
+                      script.src = 'https://js.paystack.co/v2/inline.js';
                       script.onload = () => {
                         console.log("Paystack script loaded, now initializing payment...");
                         initializePaystack();

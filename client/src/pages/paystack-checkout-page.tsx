@@ -67,7 +67,7 @@ export default function PaystackCheckoutPage() {
       console.log('Loading Paystack script...');
       const script = document.createElement('script');
       script.id = 'paystack-script';
-      script.src = 'https://js.paystack.co/v1/inline.js';
+      script.src = 'https://js.paystack.co/v2/inline.js';
       script.async = true;
       
       script.onload = () => {
