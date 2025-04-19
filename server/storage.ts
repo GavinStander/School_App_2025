@@ -426,7 +426,28 @@ export class DatabaseStorage implements IStorage {
 
   async getTicketPurchasesByStudentId(studentId: number): Promise<TicketPurchase[]> {
     try {
+      // Get the student email for referral lookups
+      const student = await this.getStudent(studentId);
+      
+      if (!student) {
+        console.error("Student not found for ID:", studentId);
+        return [];
+      }
+      
+      // Get the user info to get the email address
+      const user = await this.getUser(student.userId);
+      
+      if (!user) {
+        console.error("User not found for student:", studentId);
+        return [];
+      }
+      
+      console.log(`Looking up ticket purchases for student ID: ${studentId} with email: ${user.email}`);
+      
       // Use raw SQL query to avoid schema mismatch issues
+      // Include purchases where either:
+      // 1. student_id matches OR
+      // 2. student_email matches the student's email (for referrals)
       const result = await db.execute(
         sql`SELECT 
             id, fundraiser_id as "fundraiserId", student_id as "studentId", 
@@ -437,10 +458,11 @@ export class DatabaseStorage implements IStorage {
             student_email as "studentEmail", ticket_info as "ticketInfo",
             created_at as "createdAt"
           FROM ticket_purchases 
-          WHERE student_id = ${studentId}
+          WHERE student_id = ${studentId} OR student_email = ${user.email}
           ORDER BY created_at DESC`
       );
       
+      console.log(`Found ${result.length} ticket purchases`);
       return result as TicketPurchase[];
     } catch (error) {
       console.error("Error getting ticket purchases by student ID:", error);
@@ -450,21 +472,45 @@ export class DatabaseStorage implements IStorage {
 
   async getTicketSalesSummaryByStudent(studentId: number): Promise<{ totalAmount: number; totalTickets: number }> {
     try {
+      // Get the student email for referral lookups
+      const student = await this.getStudent(studentId);
+      
+      if (!student) {
+        console.error("Student not found for ID:", studentId);
+        return { totalAmount: 0, totalTickets: 0 };
+      }
+      
+      // Get the user info to get the email address
+      const user = await this.getUser(student.userId);
+      
+      if (!user) {
+        console.error("User not found for student:", studentId);
+        return { totalAmount: 0, totalTickets: 0 };
+      }
+      
+      console.log(`Getting sales summary for student ID: ${studentId} with email: ${user.email}`);
+      
       // Using SQL directly for aggregate functions
+      // Include purchases tied to student_id OR student_email
       const result = await db.execute(
         sql`SELECT 
             SUM(amount) as "totalAmount", 
             SUM(quantity) as "totalTickets" 
           FROM ticket_purchases 
-          WHERE student_id = ${studentId} 
+          WHERE (student_id = ${studentId} OR student_email = ${user.email})
             AND payment_status = 'completed'`
       );
       
       const summary = result[0] as { totalAmount: string; totalTickets: string };
       
+      const totalAmount = parseInt(summary.totalAmount || '0', 10) / 100; // Convert back from cents to dollars
+      const totalTickets = parseInt(summary.totalTickets || '0', 10);
+      
+      console.log(`Sales summary for student ${studentId}: Total Amount: ${totalAmount}, Total Tickets: ${totalTickets}`);
+      
       return {
-        totalAmount: parseInt(summary.totalAmount || '0', 10) / 100, // Convert back from cents to dollars
-        totalTickets: parseInt(summary.totalTickets || '0', 10)
+        totalAmount,
+        totalTickets
       };
     } catch (error) {
       console.error("Error getting ticket sales summary:", error);
