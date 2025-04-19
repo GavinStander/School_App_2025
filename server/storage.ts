@@ -228,22 +228,22 @@ export class DatabaseStorage implements IStorage {
   // Fundraiser operations
   async getFundraiser(id: number): Promise<Fundraiser | undefined> {
     try {
-      // Use the client.query directly to execute raw SQL
-      const { rows } = await client.query(`
-        SELECT 
-          id, name, location, school_id as "schoolId", 
-          is_active as "isActive", event_date as "eventDate", 
-          created_at as "createdAt" 
-        FROM fundraisers 
-        WHERE id = $1
-      `, [id]);
+      // Use SQL query directly to avoid issues with column names
+      const result = await db.execute(
+        sql`SELECT 
+            id, name, location, school_id as "schoolId", 
+            is_active as "isActive", event_date as "eventDate", 
+            created_at as "createdAt"
+          FROM fundraisers 
+          WHERE id = ${id}`
+      );
       
-      if (rows.length === 0) {
+      if (result.length === 0) {
         return undefined;
       }
       
       // Add a default price and return
-      const fundraiser = rows[0];
+      const fundraiser = result[0];
       return {
         ...fundraiser,
         price: 1000, // Default price of $10.00 in cents
@@ -258,19 +258,29 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Fetching fundraisers for school ID:", schoolId);
       // Use SQL query directly to avoid issues with column names
-      const result = await db.execute(`
-        SELECT 
-          id, name, location, school_id as "schoolId", 
-          is_active as "isActive", event_date as "eventDate", 
-          COALESCE(price, 1000) as price, 
-          created_at as "createdAt"
-        FROM fundraisers 
-        WHERE school_id = $1
-        ORDER BY event_date DESC
-      `, [schoolId]);
+      const result = await db.execute(
+        sql`SELECT 
+            id, name, location, school_id as "schoolId", 
+            is_active as "isActive", event_date as "eventDate", 
+            COALESCE(price, 1000) as price, 
+            created_at as "createdAt"
+          FROM fundraisers 
+          WHERE school_id = ${schoolId}
+          ORDER BY event_date DESC`
+      );
       
       console.log("Fundraisers result:", result);
-      return result as Fundraiser[];
+      // Cast the result to Fundraiser[] type
+      return result.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        location: row.location,
+        schoolId: row.schoolId,
+        isActive: row.isActive,
+        eventDate: row.eventDate,
+        price: row.price || 1000,
+        createdAt: row.createdAt
+      })) as Fundraiser[];
     } catch (error) {
       console.error("Error getting fundraisers by school ID:", error);
       return [];
