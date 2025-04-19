@@ -228,8 +228,26 @@ export class DatabaseStorage implements IStorage {
   // Fundraiser operations
   async getFundraiser(id: number): Promise<Fundraiser | undefined> {
     try {
-      const [fundraiser] = await db.select().from(fundraisers).where(eq(fundraisers.id, id));
-      return fundraiser;
+      // Use the client.query directly to execute raw SQL
+      const { rows } = await client.query(`
+        SELECT 
+          id, name, location, school_id as "schoolId", 
+          is_active as "isActive", event_date as "eventDate", 
+          created_at as "createdAt" 
+        FROM fundraisers 
+        WHERE id = $1
+      `, [id]);
+      
+      if (rows.length === 0) {
+        return undefined;
+      }
+      
+      // Add a default price and return
+      const fundraiser = rows[0];
+      return {
+        ...fundraiser,
+        price: 1000, // Default price of $10.00 in cents
+      } as Fundraiser;
     } catch (error) {
       console.error("Error getting fundraiser:", error);
       return undefined;
@@ -240,13 +258,17 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Fetching fundraisers for school ID:", schoolId);
       // Use SQL query directly to avoid issues with column names
-      const result = await db.execute(
-        sql`SELECT id, name, location, school_id as "schoolId", is_active as "isActive", 
-             event_date as "eventDate", created_at as "createdAt" 
-             FROM fundraisers 
-             WHERE school_id = ${schoolId} 
-             ORDER BY event_date DESC`
-      );
+      const result = await db.execute(`
+        SELECT 
+          id, name, location, school_id as "schoolId", 
+          is_active as "isActive", event_date as "eventDate", 
+          COALESCE(price, 1000) as price, 
+          created_at as "createdAt"
+        FROM fundraisers 
+        WHERE school_id = $1
+        ORDER BY event_date DESC
+      `, [schoolId]);
+      
       console.log("Fundraisers result:", result);
       return result as Fundraiser[];
     } catch (error) {
