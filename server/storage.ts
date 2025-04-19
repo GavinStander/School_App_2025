@@ -407,8 +407,10 @@ export class DatabaseStorage implements IStorage {
         sql`SELECT 
             id, fundraiser_id as "fundraiserId", student_id as "studentId", 
             customer_name as "customerName", customer_email as "customerEmail",
-            quantity, amount, payment_intent_id as "paymentIntentId", 
+            customer_phone as "customerPhone", quantity, amount, 
+            payment_intent_id as "paymentIntentId", 
             payment_status as "paymentStatus", payment_method as "paymentMethod",
+            student_email as "studentEmail", ticket_info as "ticketInfo",
             created_at as "createdAt"
           FROM ticket_purchases 
           WHERE fundraiser_id = ${fundraiserId}
@@ -429,8 +431,10 @@ export class DatabaseStorage implements IStorage {
         sql`SELECT 
             id, fundraiser_id as "fundraiserId", student_id as "studentId", 
             customer_name as "customerName", customer_email as "customerEmail",
-            quantity, amount, payment_intent_id as "paymentIntentId", 
+            customer_phone as "customerPhone", quantity, amount, 
+            payment_intent_id as "paymentIntentId", 
             payment_status as "paymentStatus", payment_method as "paymentMethod",
+            student_email as "studentEmail", ticket_info as "ticketInfo",
             created_at as "createdAt"
           FROM ticket_purchases 
           WHERE student_id = ${studentId}

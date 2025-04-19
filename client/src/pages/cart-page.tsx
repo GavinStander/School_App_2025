@@ -32,6 +32,8 @@ interface CustomerInfo {
   name: string;
   email: string;
   phone?: string;
+  studentEmail?: string;
+  ticketInfo?: string;
 }
 
 export default function CartPage() {
@@ -59,6 +61,15 @@ export default function CartPage() {
         const parsedCart = JSON.parse(storedCart);
         setCartItems(parsedCart);
         
+        // Check if any cart item has a referral student ID
+        const firstItemWithReferral = parsedCart.find(item => item.referral);
+        let studentEmail = "";
+        
+        // If we have a referral ID, we'll auto-populate the student email field
+        if (firstItemWithReferral?.referral && !user) {
+          studentEmail = firstItemWithReferral.referral;
+        }
+        
         // Check if any cart item has a customer email (from public share link)
         const firstItemWithEmail = parsedCart.find(item => item.customerEmail);
         if (firstItemWithEmail?.customerEmail && !user) {
@@ -66,7 +77,8 @@ export default function CartPage() {
           setCustomerInfo({
             name: "",
             email: firstItemWithEmail.customerEmail,
-            phone: ""
+            phone: "",
+            studentEmail: studentEmail
           });
         }
       } catch (error) {
@@ -81,7 +93,8 @@ export default function CartPage() {
       setCustomerInfo({
         name: user.username || "",
         email: user.email || "",
-        phone: ""
+        phone: "",
+        studentEmail: user.email || "" // Use the logged-in user's email as student email
       });
       setShowCustomerInfoForm(false);
     }
