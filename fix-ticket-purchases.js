@@ -1,4 +1,4 @@
-import postgres from 'postgres';
+const postgres = require('postgres');
 
 async function fixTicketPurchasesTable() {
   try {
