@@ -19,8 +19,9 @@ import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import DashboardLayout from "@/components/dashboard-layout";
 
-// Custom payment form for cart checkout
+// Custom payment components
 import PaymentForm from "@/components/payment-form";
+import PaystackCheckout from "@/components/paystack-checkout";
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render.
@@ -31,13 +32,14 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 export default function CartPaymentPage() {
   const { user } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
   
   const [clientSecret, setClientSecret] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "success" | "error">("pending");
   const [amount, setAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "paystack">("stripe");
   const [customerInfo, setCustomerInfo] = useState<{
     name: string;
     email: string;
@@ -47,11 +49,23 @@ export default function CartPaymentPage() {
   // Retrieve payment information from sessionStorage
   useEffect(() => {
     try {
+      // Check URL query parameter for payment method
+      const urlSearchParams = new URLSearchParams(window.location.search);
+      const methodParam = urlSearchParams.get("method");
+      
+      // Set payment method based on URL parameter or default to stripe
+      if (methodParam === "paystack") {
+        setPaymentMethod("paystack");
+      } else {
+        setPaymentMethod("stripe");
+      }
+      
+      // Get payment information from sessionStorage
       const secret = sessionStorage.getItem("cart_payment_client_secret");
       const amountStr = sessionStorage.getItem("cart_payment_amount");
       const customerInfoStr = sessionStorage.getItem("cart_customer_info");
       
-      if (!secret) {
+      if (!amountStr) {
         toast({
           title: "Payment Error",
           description: "No payment information found. Please return to your cart.",
@@ -62,7 +76,21 @@ export default function CartPaymentPage() {
         return;
       }
       
-      setClientSecret(secret);
+      // For stripe, we need the client secret
+      if (methodParam === "stripe" && !secret) {
+        toast({
+          title: "Payment Error",
+          description: "No payment information found. Please return to your cart.",
+          variant: "destructive",
+        });
+        setPaymentStatus("error");
+        setIsLoading(false);
+        return;
+      }
+      
+      if (secret) {
+        setClientSecret(secret);
+      }
       
       if (amountStr) {
         setAmount(parseFloat(amountStr));
@@ -214,10 +242,14 @@ export default function CartPaymentPage() {
               <span className="text-muted-foreground">Total Amount:</span>
               <span className="font-medium">{formatCurrency(amount)}</span>
             </div>
+            <div className="flex justify-between mb-2">
+              <span className="text-muted-foreground">Payment Method:</span>
+              <span className="font-medium capitalize">{paymentMethod}</span>
+            </div>
             <Separator />
           </div>
           
-          {clientSecret ? (
+          {paymentMethod === "stripe" && clientSecret ? (
             <Elements stripe={stripePromise} options={{ clientSecret }}>
               <PaymentForm 
                 fundraiserId={0} // Not used for cart payment
@@ -225,6 +257,29 @@ export default function CartPaymentPage() {
                 onError={handlePaymentError}
               />
             </Elements>
+          ) : paymentMethod === "paystack" && customerInfo ? (
+            <div className="space-y-6">
+              <div className="text-center">
+                <p className="mb-4">Click the button below to complete your payment with Paystack</p>
+                <PaystackCheckout
+                  email={customerInfo.email}
+                  amount={amount}
+                  metadata={{
+                    isCart: true,
+                    customerName: customerInfo.name,
+                    customerPhone: customerInfo.phone || "",
+                    cartItems: JSON.parse(sessionStorage.getItem("cart_items") || "[]")
+                  }}
+                  onSuccess={(reference) => {
+                    console.log("Paystack payment successful", reference);
+                    handlePaymentSuccess();
+                  }}
+                  onError={handlePaymentError}
+                  buttonText="Pay Now with Paystack"
+                  className="w-full"
+                />
+              </div>
+            </div>
           ) : (
             <div className="flex items-center justify-center h-40">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
