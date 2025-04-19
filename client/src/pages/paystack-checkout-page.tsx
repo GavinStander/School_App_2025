@@ -218,8 +218,8 @@ export default function PaystackCheckoutPage() {
         amount: amount,
         metadata: {
           isCart: true,
-          customerName: customerInfo.name,
-          cartItems: cartItems
+          customerInfo: customerInfo,
+          items: cartItems
         }
       });
       
@@ -229,9 +229,8 @@ export default function PaystackCheckoutPage() {
         amount: amount * 100, // Convert to kobo
         metadata: {
           isCart: true,
-          customerName: customerInfo.name,
-          customerPhone: customerInfo.phone || "",
-          cartItems: cartItems
+          customerInfo: customerInfo,
+          items: cartItems
         },
         onClose: () => {
           console.log("Paystack checkout closed by user");

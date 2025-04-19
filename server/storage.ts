@@ -378,10 +378,19 @@ export class DatabaseStorage implements IStorage {
 
   async getTicketPurchasesByStudentId(studentId: number): Promise<TicketPurchase[]> {
     try {
-      return db.select()
-        .from(ticketPurchases)
-        .where(eq(ticketPurchases.studentId, studentId))
-        .orderBy(desc(ticketPurchases.createdAt));
+      // Use raw SQL query to avoid schema mismatch issues
+      const result = await db.execute(
+        sql`SELECT 
+            id, fundraiser_id as "fundraiserId", student_id as "studentId", 
+            customer_name as "customerName", customer_email as "customerEmail",
+            quantity, amount, payment_intent_id as "paymentIntentId", 
+            payment_status as "paymentStatus", created_at as "createdAt"
+          FROM ticket_purchases 
+          WHERE student_id = ${studentId}
+          ORDER BY created_at DESC`
+      );
+      
+      return result as TicketPurchase[];
     } catch (error) {
       console.error("Error getting ticket purchases by student ID:", error);
       return [];
