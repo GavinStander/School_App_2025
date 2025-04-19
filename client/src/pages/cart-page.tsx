@@ -28,13 +28,13 @@ interface CartItem {
 interface CustomerInfo {
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
 }
 
 export default function CartPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const [currentPath, setLocation] = useLocation();
   
   // State for cart items, loading state, payment method
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -143,7 +143,7 @@ export default function CartPage() {
       // For now, just redirect to the first fundraiser checkout
       // In a real implementation, we'd create a single payment for all items
       const firstItem = cartItems[0];
-      navigate(`/checkout/${firstItem.fundraiserId}?quantity=${firstItem.quantity}`);
+      window.location.href = `/checkout/${firstItem.fundraiserId}?quantity=${firstItem.quantity}`;
       
       // TODO: Eventually implement multi-item checkout
       // This is a placeholder for future implementation
@@ -161,7 +161,7 @@ export default function CartPage() {
       // Process checkout with the selected payment method
       if (paymentMethod === "stripe") {
         // Navigate to Stripe checkout
-        navigate(`/checkout/multi`);
+        window.location.href = `/checkout/multi`;
       } else {
         // Handle other payment methods
         toast({
@@ -219,7 +219,7 @@ export default function CartPage() {
               {cartItems.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground mb-4">Your cart is empty.</p>
-                  <Button onClick={() => navigate("/student/fundraisers")}>
+                  <Button onClick={() => window.location.href = "/student/fundraisers"}>
                     Browse Fundraisers
                   </Button>
                 </div>

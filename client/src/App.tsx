@@ -14,6 +14,7 @@ import StudentDashboard from "@/pages/student-dashboard";
 import StudentFundraisersPage from "@/pages/student-fundraisers-page";
 import CheckoutPage from "@/pages/checkout-page";
 import PaymentSuccessPage from "@/pages/payment-success-page";
+import CartPage from "@/pages/cart-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 import { queryClient } from "./lib/queryClient";
@@ -88,6 +89,7 @@ function Router() {
         component={PaymentSuccessPage}
         fallbackPath="/student/fundraisers"
       />
+      <Route path="/cart" component={CartPage} />
       <Route component={NotFound} />
     </Switch>
   );

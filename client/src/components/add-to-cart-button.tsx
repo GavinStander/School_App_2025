@@ -88,7 +88,7 @@ export default function AddToCartButton({
   
   // Function to view cart
   const viewCart = () => {
-    navigate("/cart");
+    window.location.href = "/cart";
   };
   
   return (
