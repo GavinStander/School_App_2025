@@ -95,37 +95,33 @@ export default function PaymentForm({ fundraiserId, onSuccess, onError }: Paymen
         }
       } else if (result.paymentIntent) {
         // Handle other payment statuses
-        switch (result.paymentIntent.status) {
-          case "processing":
-            setPaymentStatus("processing");
-            toast({
-              title: "Payment Processing",
-              description: "Your payment is being processed. We'll update you when it's complete.",
-            });
-            break;
-            
-          case "requires_action":
-            // The user needs to take additional action, such as 3D Secure authentication
-            toast({
-              title: "Additional Authentication Required",
-              description: "Please complete the additional authentication steps.",
-            });
-            break;
-            
-          default:
-            const errorMessage = `Payment status: ${result.paymentIntent.status}. Please try again.`;
-            setPaymentStatus("error");
-            setPaymentError(errorMessage);
-            toast({
-              title: "Payment Not Completed",
-              description: "Your payment could not be completed. Please try again.",
-              variant: "destructive",
-            });
-            
-            // Call onError callback if provided
-            if (onError) {
-              onError(new Error(errorMessage));
-            }
+        const paymentStatus = result.paymentIntent.status;
+        if (paymentStatus === "processing") {
+          setPaymentStatus("processing");
+          toast({
+            title: "Payment Processing",
+            description: "Your payment is being processed. We'll update you when it's complete.",
+          });
+        } else if (paymentStatus === "requires_action") {
+          // The user needs to take additional action, such as 3D Secure authentication
+          toast({
+            title: "Additional Authentication Required",
+            description: "Please complete the additional authentication steps.",
+          });
+        } else {
+          const errorMessage = `Payment status: ${paymentStatus}. Please try again.`;
+          setPaymentStatus("error");
+          setPaymentError(errorMessage);
+          toast({
+            title: "Payment Not Completed",
+            description: "Your payment could not be completed. Please try again.",
+            variant: "destructive",
+          });
+          
+          // Call onError callback if provided
+          if (onError) {
+            onError(new Error(errorMessage));
+          }
         }
       } else {
         // No result info

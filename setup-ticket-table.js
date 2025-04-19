@@ -25,7 +25,7 @@ async function setupTicketPurchasesTable() {
         CREATE TABLE IF NOT EXISTS ticket_purchases (
           id SERIAL PRIMARY KEY,
           fundraiser_id INTEGER NOT NULL,
-          student_id INTEGER NOT NULL,
+          student_id INTEGER,
           customer_name VARCHAR(255) NOT NULL,
           customer_email VARCHAR(255) NOT NULL,
           customer_phone VARCHAR(50),
