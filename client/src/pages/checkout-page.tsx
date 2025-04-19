@@ -41,7 +41,7 @@ export default function CheckoutPage() {
   const [customerInfo, setCustomerInfo] = useState<{
     name: string;
     email: string;
-    phone: string;
+    phone?: string;
   }>({
     name: "",
     email: "",
