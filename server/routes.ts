@@ -838,7 +838,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quantity: item.quantity,
           amount: item.amount,
           paymentIntentId: paymentIntent.id,
-          paymentStatus: 'completed'
+          paymentStatus: 'completed',
+          paymentMethod: 'stripe',
+          studentEmail: metadata.studentEmail || null,
+          ticketInfo: metadata.ticketInfo || null
         });
       }
       
@@ -901,7 +904,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         quantity: parseInt(quantity, 10),
         amount: paymentIntent.amount,
         paymentIntentId: paymentIntent.id,
-        paymentStatus: 'completed'
+        paymentStatus: 'completed',
+        paymentMethod: 'stripe',
+        studentEmail: metadata.studentEmail || null,
+        ticketInfo: metadata.ticketInfo || null
       });
       
       console.log('Single ticket purchase recorded successfully');
@@ -1162,10 +1168,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         studentId: student.id,
         customerName: req.user.username || "Test Customer",
         customerEmail: req.user.email || "test@example.com",
+        customerPhone: "1234567890",
         quantity: parseInt(quantity, 10),
         amount: parseInt(amount, 10) * 100, // Convert to cents
         paymentIntentId: `test_pi_${Date.now()}`,
-        paymentStatus: "completed"
+        paymentStatus: "completed",
+        paymentMethod: "test",
+        studentEmail: req.user.email || "test@example.com",
+        ticketInfo: "Test ticket created through API"
       });
       
       res.status(201).json({
@@ -1273,10 +1283,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         studentId: purchaseStudentId,
         customerName: customerInfo.name,
         customerEmail: customerInfo.email,
+        customerPhone: customerInfo.phone,
         quantity: parseInt(quantity, 10),
         amount: expectedAmount, // Using the calculated expected amount
         paymentIntentId: reference,
-        paymentStatus: "completed"
+        paymentStatus: "completed",
+        paymentMethod: "paystack",
+        studentEmail: customerInfo.studentEmail,
+        ticketInfo: customerInfo.ticketInfo
       });
       
       res.status(200).json({
@@ -1408,10 +1422,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           studentId: purchaseStudentId,
           customerName: customerInfo.name,
           customerEmail: customerInfo.email,
+          customerPhone: customerInfo.phone,
           quantity: item.quantity,
           amount: itemAmount,
           paymentIntentId: reference, // Same reference for all items in cart
-          paymentStatus: "completed"
+          paymentStatus: "completed",
+          paymentMethod: "paystack",
+          studentEmail: customerInfo.studentEmail,
+          ticketInfo: customerInfo.ticketInfo
         });
         
         ticketPurchases.push(purchase);

@@ -41,15 +41,17 @@ export default function PaymentSuccessPage() {
   const getDashboardLink = () => {
     if (!user) return "/";
     
-    switch (user.role) {
-      case "ADMIN":
-        return "/admin/dashboard";
-      case "SCHOOL":
-        return "/school/dashboard";
-      case "STUDENT":
-        return "/student/dashboard";
-      default:
-        return "/";
+    // Get the role as a string for comparison
+    const role = user.role as string;
+    
+    if (role === "ADMIN") {
+      return "/admin/dashboard";
+    } else if (role === "SCHOOL") {
+      return "/school/dashboard";
+    } else if (role === "STUDENT") {
+      return "/student/dashboard";
+    } else {
+      return "/";
     }
   };
   
@@ -130,13 +132,13 @@ export default function PaymentSuccessPage() {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="w-full">
-                {user.role === "STUDENT" ? (
+                {(user.role as string) === "STUDENT" ? (
                   <Link to="/student/fundraisers">
                     <Tag className="mr-2 h-4 w-4" />
                     View More Fundraisers
                   </Link>
                 ) : (
-                  <Link to={`/${user.role.toLowerCase()}/fundraisers`}>
+                  <Link to={`/${(user.role as string).toLowerCase()}/fundraisers`}>
                     <Tag className="mr-2 h-4 w-4" />
                     Manage Fundraisers
                   </Link>
