@@ -369,7 +369,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(
         sql`INSERT INTO ticket_purchases (
           fundraiser_id, student_id, customer_name, customer_email, 
-          quantity, amount, payment_intent_id, payment_status
+          quantity, amount, payment_intent_id, payment_status, payment_method
         ) VALUES (
           ${ticketPurchase.fundraiserId}, 
           ${ticketPurchase.studentId}, 
@@ -378,12 +378,14 @@ export class DatabaseStorage implements IStorage {
           ${ticketPurchase.quantity}, 
           ${ticketPurchase.amount}, 
           ${ticketPurchase.paymentIntentId}, 
-          ${ticketPurchase.paymentStatus}
+          ${ticketPurchase.paymentStatus},
+          'paystack'
         ) RETURNING 
           id, fundraiser_id as "fundraiserId", student_id as "studentId",
           customer_name as "customerName", customer_email as "customerEmail",
           quantity, amount, payment_intent_id as "paymentIntentId",
-          payment_status as "paymentStatus", created_at as "createdAt"
+          payment_status as "paymentStatus", payment_method as "paymentMethod",
+          created_at as "createdAt"
       `);
       
       if (result && result.length > 0) {
@@ -406,7 +408,8 @@ export class DatabaseStorage implements IStorage {
             id, fundraiser_id as "fundraiserId", student_id as "studentId", 
             customer_name as "customerName", customer_email as "customerEmail",
             quantity, amount, payment_intent_id as "paymentIntentId", 
-            payment_status as "paymentStatus", created_at as "createdAt"
+            payment_status as "paymentStatus", payment_method as "paymentMethod",
+            created_at as "createdAt"
           FROM ticket_purchases 
           WHERE fundraiser_id = ${fundraiserId}
           ORDER BY created_at DESC`
@@ -427,7 +430,8 @@ export class DatabaseStorage implements IStorage {
             id, fundraiser_id as "fundraiserId", student_id as "studentId", 
             customer_name as "customerName", customer_email as "customerEmail",
             quantity, amount, payment_intent_id as "paymentIntentId", 
-            payment_status as "paymentStatus", created_at as "createdAt"
+            payment_status as "paymentStatus", payment_method as "paymentMethod",
+            created_at as "createdAt"
           FROM ticket_purchases 
           WHERE student_id = ${studentId}
           ORDER BY created_at DESC`
