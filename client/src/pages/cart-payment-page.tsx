@@ -132,7 +132,7 @@ export default function CartPaymentPage() {
     }
   }, [toast]);
   
-  // Clear cart and payment info after successful payment
+  // Clear cart and payment info after successful payment and redirect to dashboard
   const handlePaymentSuccess = () => {
     // Clear cart
     localStorage.removeItem("fundraiser-cart");
@@ -148,6 +148,11 @@ export default function CartPaymentPage() {
       title: "Payment Successful",
       description: "Your order has been processed successfully.",
     });
+    
+    // Redirect to student dashboard after a short delay to show the success message
+    setTimeout(() => {
+      window.location.href = "/student/dashboard";
+    }, 2000);
   };
   
   // Handle payment error
