@@ -80,7 +80,7 @@ export const notifications = pgTable("notifications", {
 export const ticketPurchases = pgTable("ticket_purchases", {
   id: serial("id").primaryKey(),
   fundraiserId: integer("fundraiser_id").notNull(),
-  studentId: integer("student_id").notNull(),
+  studentId: integer("student_id"), // Made nullable to support guest purchases
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email").notNull(),
   customerPhone: text("customer_phone"),
