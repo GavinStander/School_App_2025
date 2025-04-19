@@ -407,10 +407,8 @@ export class DatabaseStorage implements IStorage {
         sql`SELECT 
             id, fundraiser_id as "fundraiserId", student_id as "studentId", 
             customer_name as "customerName", customer_email as "customerEmail",
-            customer_phone as "customerPhone", quantity, amount, 
-            payment_intent_id as "paymentIntentId", 
+            quantity, amount, payment_intent_id as "paymentIntentId", 
             payment_status as "paymentStatus", payment_method as "paymentMethod",
-            student_email as "studentEmail", ticket_info as "ticketInfo",
             created_at as "createdAt"
           FROM ticket_purchases 
           WHERE fundraiser_id = ${fundraiserId}
@@ -426,23 +424,19 @@ export class DatabaseStorage implements IStorage {
 
   async getTicketPurchasesByStudentId(studentId: number): Promise<TicketPurchase[]> {
     try {
-      console.log(`Looking up ticket purchases for student ID: ${studentId}`);
-      
-      // Simplified query - only select the columns we know exist
+      // Use raw SQL query to avoid schema mismatch issues
       const result = await db.execute(
         sql`SELECT 
             id, fundraiser_id as "fundraiserId", student_id as "studentId", 
             customer_name as "customerName", customer_email as "customerEmail",
-            quantity, amount, 
-            payment_intent_id as "paymentIntentId", 
+            quantity, amount, payment_intent_id as "paymentIntentId", 
             payment_status as "paymentStatus", payment_method as "paymentMethod",
             created_at as "createdAt"
           FROM ticket_purchases 
-          WHERE student_id = ${studentId} 
+          WHERE student_id = ${studentId}
           ORDER BY created_at DESC`
       );
       
-      console.log(`Found ${result.length} ticket purchases`);
       return result as TicketPurchase[];
     } catch (error) {
       console.error("Error getting ticket purchases by student ID:", error);
@@ -452,28 +446,21 @@ export class DatabaseStorage implements IStorage {
 
   async getTicketSalesSummaryByStudent(studentId: number): Promise<{ totalAmount: number; totalTickets: number }> {
     try {
-      console.log(`Getting sales summary for student ID: ${studentId}`);
-      
-      // Simplified approach - just query by student_id without column existence checks
+      // Using SQL directly for aggregate functions
       const result = await db.execute(
         sql`SELECT 
-            COALESCE(SUM(amount), 0) as "totalAmount", 
-            COALESCE(SUM(quantity), 0) as "totalTickets" 
+            SUM(amount) as "totalAmount", 
+            SUM(quantity) as "totalTickets" 
           FROM ticket_purchases 
-          WHERE student_id = ${studentId}
+          WHERE student_id = ${studentId} 
             AND payment_status = 'completed'`
       );
       
       const summary = result[0] as { totalAmount: string; totalTickets: string };
       
-      const totalAmount = parseInt(summary.totalAmount || '0', 10) / 100; // Convert back from cents to dollars
-      const totalTickets = parseInt(summary.totalTickets || '0', 10);
-      
-      console.log(`Sales summary for student ${studentId}: Total Amount: ${totalAmount}, Total Tickets: ${totalTickets}`);
-      
       return {
-        totalAmount,
-        totalTickets
+        totalAmount: parseInt(summary.totalAmount || '0', 10) / 100, // Convert back from cents to dollars
+        totalTickets: parseInt(summary.totalTickets || '0', 10)
       };
     } catch (error) {
       console.error("Error getting ticket sales summary:", error);

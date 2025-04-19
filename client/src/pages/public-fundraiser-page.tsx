@@ -19,21 +19,14 @@ export default function PublicFundraiserPage() {
   const fundraiserId = params?.id ? parseInt(params.id) : 0;
   const [email, setEmail] = useState("");
   
-  // Get referral ID and student email from query string if it exists
+  // Get referral ID from query string if it exists
   const [referralId, setReferralId] = useState<number | null>(null);
-  const [studentEmail, setStudentEmail] = useState<string | null>(null);
   
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get('ref');
-    const studentEmailParam = urlParams.get('email');
-    
     if (ref) {
       setReferralId(parseInt(ref));
-    }
-    
-    if (studentEmailParam) {
-      setStudentEmail(studentEmailParam);
     }
   }, []);
   
@@ -63,9 +56,9 @@ export default function PublicFundraiserPage() {
       eventDate: fundraiser?.eventDate,
       location: fundraiser?.location || 'Unknown',
       quantity: 1,
-      price: fundraiser?.price || 10, // Use fundraiser price or default to $10 per ticket
+      price: 10, // Fixed price at $10 per ticket
       studentId: referralId, // Include the referring student's ID
-      referral: studentEmail || 'external', // Use student email as referral if available
+      referral: 'external', // Mark as external referral
       customerEmail: email || undefined // Include email if provided
     });
     
@@ -233,14 +226,9 @@ export default function PublicFundraiserPage() {
                 </div>
               )}
               
-              {(referralId || studentEmail) && (
+              {referralId && (
                 <div className="text-center text-sm text-muted-foreground mt-2">
                   You are supporting a student with this purchase
-                  {studentEmail && (
-                    <span className="block text-green-600 mt-1">
-                      Credit will go to: {studentEmail}
-                    </span>
-                  )}
                 </div>
               )}
             </CardFooter>

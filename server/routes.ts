@@ -838,10 +838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quantity: item.quantity,
           amount: item.amount,
           paymentIntentId: paymentIntent.id,
-          paymentStatus: 'completed',
-          paymentMethod: 'stripe',
-          studentEmail: metadata.studentEmail || null,
-          ticketInfo: metadata.ticketInfo || null
+          paymentStatus: 'completed'
         });
       }
       
@@ -904,10 +901,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         quantity: parseInt(quantity, 10),
         amount: paymentIntent.amount,
         paymentIntentId: paymentIntent.id,
-        paymentStatus: 'completed',
-        paymentMethod: 'stripe',
-        studentEmail: metadata.studentEmail || null,
-        ticketInfo: metadata.ticketInfo || null
+        paymentStatus: 'completed'
       });
       
       console.log('Single ticket purchase recorded successfully');
@@ -1024,14 +1018,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         studentId: studentId,
         customerName: customerInfo.name,
         customerEmail: customerInfo.email,
-        customerPhone: customerInfo.phone,
         quantity: parseInt(quantity, 10),
         amount: amount,
         paymentIntentId: paymentId,
-        paymentStatus: "completed",
-        paymentMethod: "cash",
-        studentEmail: customerInfo.studentEmail,
-        ticketInfo: customerInfo.ticketInfo
+        paymentStatus: "completed"
       });
       
       res.status(201).json({
@@ -1121,14 +1111,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           studentId: purchaseStudentId,
           customerName: customerInfo.name,
           customerEmail: customerInfo.email,
-          customerPhone: customerInfo.phone,
           quantity: item.quantity,
           amount: itemAmount,
           paymentIntentId: paymentId, // Same ID for all items in cart
-          paymentStatus: "completed",
-          paymentMethod: "cash",
-          studentEmail: customerInfo.studentEmail,
-          ticketInfo: customerInfo.ticketInfo
+          paymentStatus: "completed"
         });
         
         ticketPurchases.push(purchase);
@@ -1168,14 +1154,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         studentId: student.id,
         customerName: req.user.username || "Test Customer",
         customerEmail: req.user.email || "test@example.com",
-        customerPhone: "1234567890",
         quantity: parseInt(quantity, 10),
         amount: parseInt(amount, 10) * 100, // Convert to cents
         paymentIntentId: `test_pi_${Date.now()}`,
-        paymentStatus: "completed",
-        paymentMethod: "test",
-        studentEmail: req.user.email || "test@example.com",
-        ticketInfo: "Test ticket created through API"
+        paymentStatus: "completed"
       });
       
       res.status(201).json({
@@ -1283,14 +1265,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         studentId: purchaseStudentId,
         customerName: customerInfo.name,
         customerEmail: customerInfo.email,
-        customerPhone: customerInfo.phone,
         quantity: parseInt(quantity, 10),
         amount: expectedAmount, // Using the calculated expected amount
         paymentIntentId: reference,
-        paymentStatus: "completed",
-        paymentMethod: "paystack",
-        studentEmail: customerInfo.studentEmail,
-        ticketInfo: customerInfo.ticketInfo
+        paymentStatus: "completed"
       });
       
       res.status(200).json({
@@ -1422,14 +1400,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           studentId: purchaseStudentId,
           customerName: customerInfo.name,
           customerEmail: customerInfo.email,
-          customerPhone: customerInfo.phone,
           quantity: item.quantity,
           amount: itemAmount,
           paymentIntentId: reference, // Same reference for all items in cart
-          paymentStatus: "completed",
-          paymentMethod: "paystack",
-          studentEmail: customerInfo.studentEmail,
-          ticketInfo: customerInfo.ticketInfo
+          paymentStatus: "completed"
         });
         
         ticketPurchases.push(purchase);

@@ -23,8 +23,6 @@ import { useToast } from "@/hooks/use-toast";
 import CustomerInfoForm from "@/components/customer-info-form";
 import PaymentForm from "@/components/payment-form";
 import { apiRequest } from "@/lib/queryClient";
-import DashboardLayout from "@/components/dashboard-layout";
-import { useAuth } from "@/hooks/use-auth";
 
 // Initialize Stripe
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
@@ -36,7 +34,6 @@ export default function CheckoutPage() {
   const { fundraiserId } = useParams();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { user } = useAuth();
   
   const [step, setStep] = useState<string>("details");
   const [quantity, setQuantity] = useState<number>(1);
@@ -150,141 +147,137 @@ export default function CheckoutPage() {
   // If there's an error or no fundraiser found
   if (error || (!isLoading && !fundraiser)) {
     return (
-      <DashboardLayout title="Error" role={user?.role || "student"}>
-        <div className="container max-w-4xl mx-auto py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">Error</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Could not find the fundraiser you're looking for.</p>
-            </CardContent>
-            <CardFooter>
-              <Button asChild>
-                <Link to="/">Go Back Home</Link>
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      </DashboardLayout>
+      <div className="container max-w-4xl mx-auto py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Could not find the fundraiser you're looking for.</p>
+          </CardContent>
+          <CardFooter>
+            <Button asChild>
+              <Link to="/">Go Back Home</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
     );
   }
   
   return (
-    <DashboardLayout title={`Checkout - ${fundraiser?.name || "Fundraiser"}`} role={user?.role || "student"}>
-      <div className="container max-w-4xl mx-auto py-8">
-        <div className="flex flex-col space-y-6">
-          <Link to={`/student/fundraisers`}>
-            <Button variant="ghost" className="justify-start p-0">
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back to Fundraisers
-            </Button>
-          </Link>
-          
-          <h1 className="text-3xl font-bold">{fundraiser?.name || "Fundraiser Checkout"}</h1>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left column - Order summary */}
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isLoading ? (
-                    <div className="animate-pulse space-y-3">
-                      <div className="h-4 bg-muted rounded"></div>
-                      <div className="h-4 bg-muted rounded"></div>
-                      <div className="h-4 bg-muted rounded"></div>
+    <div className="container max-w-4xl mx-auto py-8">
+      <div className="flex flex-col space-y-6">
+        <Link to={`/student/fundraisers`}>
+          <Button variant="ghost" className="justify-start p-0">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back to Fundraisers
+          </Button>
+        </Link>
+        
+        <h1 className="text-3xl font-bold">{fundraiser?.name || "Fundraiser Checkout"}</h1>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left column - Order summary */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isLoading ? (
+                  <div className="animate-pulse space-y-3">
+                    <div className="h-4 bg-muted rounded"></div>
+                    <div className="h-4 bg-muted rounded"></div>
+                    <div className="h-4 bg-muted rounded"></div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <div className="flex items-center">
+                        <Calendar className="mr-2 h-5 w-5 text-muted-foreground" />
+                        <span>Event Date</span>
+                      </div>
+                      <span>{new Date(fundraiser?.eventDate || "").toLocaleDateString()}</span>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between">
-                        <div className="flex items-center">
-                          <Calendar className="mr-2 h-5 w-5 text-muted-foreground" />
-                          <span>Event Date</span>
-                        </div>
-                        <span>{new Date(fundraiser?.eventDate || "").toLocaleDateString()}</span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <div className="flex items-center">
-                          <Users className="mr-2 h-5 w-5 text-muted-foreground" />
-                          <span>Organized by</span>
-                        </div>
-                        <span>{school?.name}</span>
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="flex justify-between">
-                        <div className="flex items-center">
-                          <Ticket className="mr-2 h-5 w-5 text-muted-foreground" />
-                          <span>Tickets</span>
-                        </div>
-                        <span>{quantity} × ${ticketPrice}</span>
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="flex justify-between font-bold">
-                        <span>Total</span>
-                        <span>${totalAmount.toFixed(2)}</span>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-            
-            {/* Right column - Checkout steps */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Checkout</CardTitle>
-                  <CardDescription>Complete your purchase</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Tabs value={step} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="details">Customer Info</TabsTrigger>
-                      <TabsTrigger value="payment" disabled={!customerInfo.email}>Payment</TabsTrigger>
-                    </TabsList>
                     
-                    <TabsContent value="details" className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="quantity">Number of Tickets</Label>
-                        <Input
-                          id="quantity"
-                          type="number"
-                          min="1"
-                          max="10"
-                          value={quantity}
-                          onChange={handleQuantityChange}
-                        />
+                    <div className="flex justify-between">
+                      <div className="flex items-center">
+                        <Users className="mr-2 h-5 w-5 text-muted-foreground" />
+                        <span>Organized by</span>
                       </div>
-                      
-                      <CustomerInfoForm onSubmit={handleCustomerInfoSubmit} />
-                    </TabsContent>
+                      <span>{school?.name}</span>
+                    </div>
                     
-                    <TabsContent value="payment" className="py-4">
-                      {clientSecret ? (
-                        <Elements stripe={stripePromise} options={{ clientSecret }}>
-                          <PaymentForm fundraiserId={parseInt(fundraiserId!)} />
-                        </Elements>
-                      ) : (
-                        <div className="flex items-center justify-center h-40">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                        </div>
-                      )}
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-            </div>
+                    <Separator />
+                    
+                    <div className="flex justify-between">
+                      <div className="flex items-center">
+                        <Ticket className="mr-2 h-5 w-5 text-muted-foreground" />
+                        <span>Tickets</span>
+                      </div>
+                      <span>{quantity} × ${ticketPrice}</span>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="flex justify-between font-bold">
+                      <span>Total</span>
+                      <span>${totalAmount.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Right column - Checkout steps */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Checkout</CardTitle>
+                <CardDescription>Complete your purchase</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={step} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="details">Customer Info</TabsTrigger>
+                    <TabsTrigger value="payment" disabled={!customerInfo.email}>Payment</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="details" className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="quantity">Number of Tickets</Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={quantity}
+                        onChange={handleQuantityChange}
+                      />
+                    </div>
+                    
+                    <CustomerInfoForm onSubmit={handleCustomerInfoSubmit} />
+                  </TabsContent>
+                  
+                  <TabsContent value="payment" className="py-4">
+                    {clientSecret ? (
+                      <Elements stripe={stripePromise} options={{ clientSecret }}>
+                        <PaymentForm fundraiserId={parseInt(fundraiserId!)} />
+                      </Elements>
+                    ) : (
+                      <div className="flex items-center justify-center h-40">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

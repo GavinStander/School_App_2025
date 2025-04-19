@@ -88,9 +88,6 @@ export const ticketPurchases = pgTable("ticket_purchases", {
   amount: integer("amount").notNull(), // stored in cents
   paymentIntentId: text("payment_intent_id").notNull(),
   paymentStatus: text("payment_status").notNull().default("completed"),
-  paymentMethod: text("payment_method").default("credit_card"),
-  studentEmail: text("student_email"), // To store the student's email for better tracking
-  ticketInfo: text("ticket_info"), // To store additional ticket information
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

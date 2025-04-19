@@ -19,8 +19,6 @@ const customerInfoSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   phone: z.string().min(10, { message: "Please enter a valid phone number" }).optional(),
-  studentEmail: z.string().email({ message: "Please enter a valid student email" }).optional(),
-  ticketInfo: z.string().optional(),
 });
 
 type CustomerInfoValues = z.infer<typeof customerInfoSchema>;
@@ -40,8 +38,6 @@ export default function CustomerInfoForm({ onSubmit, defaultValues }: CustomerIn
       name: "",
       email: "",
       phone: "",
-      studentEmail: "",
-      ticketInfo: "",
     },
   });
   
@@ -96,40 +92,6 @@ export default function CustomerInfoForm({ onSubmit, defaultValues }: CustomerIn
                 <Input placeholder="(123) 456-7890" {...field} />
               </FormControl>
               <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="studentEmail"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Student Email (if different from above)</FormLabel>
-              <FormControl>
-                <Input placeholder="student@school.edu" {...field} />
-              </FormControl>
-              <FormMessage />
-              <p className="text-xs text-muted-foreground">
-                Enter the student's email if the purchase should be credited to a specific student
-              </p>
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="ticketInfo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Additional Ticket Information</FormLabel>
-              <FormControl>
-                <Input placeholder="Table preference, dietary restrictions, etc." {...field} />
-              </FormControl>
-              <FormMessage />
-              <p className="text-xs text-muted-foreground">
-                Add any specific information related to your ticket purchase
-              </p>
             </FormItem>
           )}
         />
