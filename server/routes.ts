@@ -478,8 +478,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get single fundraiser by ID
-  app.get("/api/fundraisers/:id", isAuthenticated, async (req, res) => {
+  // Get single fundraiser by ID (public endpoint, no authentication required)
+  app.get("/api/fundraisers/:id", async (req, res) => {
     try {
       const fundraiserId = parseInt(req.params.id);
       
@@ -500,8 +500,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get school by ID
-  app.get("/api/schools/:id", isAuthenticated, async (req, res) => {
+  // Get school by ID (public endpoint, no authentication required)
+  app.get("/api/schools/:id", async (req, res) => {
     try {
       const schoolId = parseInt(req.params.id);
       
