@@ -47,8 +47,8 @@ const fundraiserFormSchema = z.object({
       (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
       { message: "Price must be a valid positive number" }
     ),
-  image: z.string().optional(),
-  description: z.string().optional(),
+  image: z.instanceof(File).optional().or(z.string()).optional(),
+  description: z.string().max(500, "Description must be less than 500 characters").optional(),
 });
 
 type FundraiserFormValues = z.infer<typeof fundraiserFormSchema>;
@@ -84,15 +84,42 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
       // Convert price from string to cents for storage
       const priceInCents = Math.round(parseFloat(values.price) * 100);
       
-      // Note: Now the backend expects event_name which maps to 'name' in the DB
-      const res = await apiRequest("POST", "/api/school/fundraisers", {
-        event_name: values.name, // event_name in API gets mapped to 'name' in database
-        location: values.location,
-        eventDate: formattedDate,
-        price: priceInCents, // Store price in cents
-        image: values.image || null,
-        description: values.description || null
+      // Use FormData to handle file uploads
+      const formData = new FormData();
+      formData.append('event_name', values.name);
+      formData.append('location', values.location);
+      
+      if (formattedDate) {
+        formData.append('eventDate', formattedDate);
+      }
+      
+      formData.append('price', priceInCents.toString());
+      
+      if (values.image) {
+        if (values.image instanceof File) {
+          formData.append('image', values.image);
+        } else if (typeof values.image === 'string') {
+          formData.append('imageUrl', values.image);
+        }
+      }
+      
+      if (values.description) {
+        formData.append('description', values.description);
+      }
+      
+      // Custom fetch to handle FormData properly instead of using apiRequest
+      const res = await fetch('/api/school/fundraisers', {
+        method: 'POST',
+        body: formData,
+        // Don't set Content-Type header, let the browser set it correctly with the boundary
+        credentials: 'include',
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to create fundraiser');
+      }
+      
       return await res.json() as Fundraiser;
     },
     onSuccess: () => {
@@ -236,20 +263,53 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
             <FormField
               control={form.control}
               name="image"
-              render={({ field }) => (
+              render={({ field: { value, onChange, ...fieldProps } }) => (
                 <FormItem>
                   <FormLabel>
                     <div className="flex items-center gap-2">
                       <ImageIcon className="h-4 w-4" />
-                      <span>Image URL</span>
+                      <span>Event Image</span>
                     </div>
                   </FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="https://example.com/image.jpg" 
-                      {...field} 
-                      aria-label="Image URL" 
-                    />
+                    <div className="flex flex-col gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            onChange(file);
+                          }
+                        }}
+                        {...fieldProps}
+                        aria-label="Event Image"
+                      />
+                      {typeof value === 'string' && value && (
+                        <div className="mt-2">
+                          <p className="text-sm text-muted-foreground mb-1">Current image:</p>
+                          <div className="relative aspect-square w-full max-w-[200px] rounded-md overflow-hidden">
+                            <img 
+                              src={value} 
+                              alt="Current event image" 
+                              className="object-cover w-full h-full"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {value instanceof File && (
+                        <div className="mt-2">
+                          <p className="text-sm text-muted-foreground mb-1">Selected image:</p>
+                          <div className="relative aspect-square w-full max-w-[200px] rounded-md overflow-hidden">
+                            <img 
+                              src={URL.createObjectURL(value)} 
+                              alt="Selected event image" 
+                              className="object-cover w-full h-full"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
