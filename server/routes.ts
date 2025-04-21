@@ -1461,5 +1461,183 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  // Fundraiser Management Routes
+  
+  // Create new fundraiser
+  app.post("/api/fundraisers", isAuthenticated, hasRole(UserRole.SCHOOL), async (req, res) => {
+    try {
+      const school = await storage.getSchoolByUserId(req.user.id);
+      if (!school) {
+        return res.status(404).json({ message: "School not found" });
+      }
+      
+      const { name, location, eventDate, price, isActive, image, description } = req.body;
+      
+      // Ensure we're passing a valid date
+      let formattedDate;
+      try {
+        if (typeof eventDate === 'string') {
+          formattedDate = new Date(eventDate);
+          
+          // Check if it's a valid date
+          if (isNaN(formattedDate.getTime())) {
+            return res.status(400).json({ message: "Invalid date format" });
+          }
+        } else {
+          return res.status(400).json({ message: "Event date is required" });
+        }
+      } catch (error) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+
+      // Validate price (in cents)
+      let priceInCents = 1000; // Default to $10.00
+      if (price) {
+        priceInCents = parseInt(price.toString(), 10);
+        if (isNaN(priceInCents) || priceInCents <= 0) {
+          return res.status(400).json({ message: "Price must be a positive number" });
+        }
+      }
+      
+      console.log("Creating fundraiser with:", {
+        name,
+        location,
+        eventDate: formattedDate.toISOString().split('T')[0], 
+        price: priceInCents,
+        schoolId: school.id,
+        isActive: isActive !== undefined ? isActive : true,
+        image: image || null,
+        description: description || null
+      });
+      
+      // Create the fundraiser
+      const fundraiser = await storage.createFundraiser({
+        name,
+        location,
+        eventDate: formattedDate.toISOString().split('T')[0], // Format as YYYY-MM-DD string
+        price: priceInCents,
+        schoolId: school.id,
+        isActive: isActive !== undefined ? isActive : true,
+        image: image || null,
+        description: description || null
+      });
+      
+      // Find students associated with this school and create notifications for them
+      const schoolStudents = await storage.getStudentsWithUserInfoBySchoolId(school.id);
+      
+      const notificationTitle = "New Fundraiser Event";
+      const notificationMessage = `Your school has added a new fundraiser: ${fundraiser.name} on ${fundraiser.eventDate} at ${fundraiser.location}`;
+      
+      // Create notifications for each student and send emails
+      for (const student of schoolStudents) {
+        // Create in-app notification
+        await storage.createNotification({
+          userId: student.userId,
+          title: notificationTitle,
+          message: notificationMessage,
+          type: "info",
+          read: false
+        });
+        
+        // Log notification for audit purposes (simulating email notification)
+        if (student.email) {
+          // Don't await - process asynchronously
+          sendNotificationEmail(
+            student.email,
+            notificationTitle,
+            notificationMessage
+          ).catch(err => {
+            console.error('Error processing notification:', err);
+          });
+        }
+      }
+
+      res.status(201).json(fundraiser);
+    } catch (error) {
+      console.error("Error creating fundraiser:", error);
+      res.status(500).json({ message: "Failed to create fundraiser" });
+    }
+  });
+  
+  // Update fundraiser endpoint
+  app.patch("/api/fundraisers/:id", isAuthenticated, async (req, res) => {
+    try {
+      const fundraiserId = parseInt(req.params.id);
+      if (isNaN(fundraiserId)) {
+        return res.status(400).json({ message: "Invalid fundraiser ID" });
+      }
+      
+      // Get the fundraiser
+      const fundraiser = await storage.getFundraiser(fundraiserId);
+      if (!fundraiser) {
+        return res.status(404).json({ message: "Fundraiser not found" });
+      }
+      
+      // Check permissions
+      if (req.user.role === UserRole.SCHOOL) {
+        const school = await storage.getSchoolByUserId(req.user.id);
+        if (!school || school.id !== fundraiser.schoolId) {
+          return res.status(403).json({ message: "You don't have permission to update this fundraiser" });
+        }
+      } else if (req.user.role !== UserRole.ADMIN) {
+        // Only schools that own the fundraiser or admins can update
+        return res.status(403).json({ message: "You don't have permission to update this fundraiser" });
+      }
+      
+      const { name, location, eventDate, price, isActive, image, description } = req.body;
+      
+      // Process the updates
+      const updates: Record<string, any> = {};
+      
+      if (name !== undefined) {
+        updates.name = name;
+      }
+      
+      if (location !== undefined) {
+        updates.location = location;
+      }
+      
+      if (isActive !== undefined) {
+        updates.isActive = isActive;
+      }
+      
+      if (eventDate !== undefined) {
+        try {
+          const formattedDate = new Date(eventDate);
+          if (isNaN(formattedDate.getTime())) {
+            return res.status(400).json({ message: "Invalid date format" });
+          }
+          updates.eventDate = formattedDate.toISOString().split('T')[0];
+        } catch (error) {
+          return res.status(400).json({ message: "Invalid date format" });
+        }
+      }
+      
+      if (price !== undefined) {
+        const priceInCents = parseInt(price.toString(), 10);
+        if (isNaN(priceInCents) || priceInCents <= 0) {
+          return res.status(400).json({ message: "Price must be a positive number" });
+        }
+        updates.price = priceInCents;
+      }
+      
+      if (image !== undefined) {
+        updates.image = image;
+      }
+      
+      if (description !== undefined) {
+        updates.description = description;
+      }
+      
+      // Update the fundraiser
+      const updatedFundraiser = await storage.updateFundraiser(fundraiserId, updates);
+      
+      res.json(updatedFundraiser);
+    } catch (error) {
+      console.error("Error updating fundraiser:", error);
+      res.status(500).json({ message: "Failed to update fundraiser" });
+    }
+  });
+
   return httpServer;
 }
