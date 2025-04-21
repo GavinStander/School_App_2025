@@ -231,7 +231,8 @@ export class DatabaseStorage implements IStorage {
       // Use SQL query directly to avoid issues with column names
       const result = await db.execute(
         sql`SELECT id, name, location, school_id as "schoolId", is_active as "isActive", 
-             event_date as "eventDate", created_at as "createdAt" 
+             event_date as "eventDate", created_at as "createdAt", price,
+             image, description
              FROM fundraisers 
              WHERE id = ${id}`
       );
@@ -252,7 +253,8 @@ export class DatabaseStorage implements IStorage {
       // Use SQL query directly to avoid issues with column names
       const result = await db.execute(
         sql`SELECT id, name, location, school_id as "schoolId", is_active as "isActive", 
-             event_date as "eventDate", created_at as "createdAt" 
+             event_date as "eventDate", created_at as "createdAt", price,
+             image, description
              FROM fundraisers 
              WHERE school_id = ${schoolId} 
              ORDER BY event_date DESC`

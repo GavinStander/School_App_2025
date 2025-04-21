@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Received fundraiser data:", req.body);
-      const { event_name, location, eventDate, price } = req.body;
+      const { event_name, location, eventDate, price, image, description } = req.body;
       // Ensure we're passing a valid date
       let formattedDate;
       try {
@@ -197,7 +197,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventDate: formattedDate.toISOString().split('T')[0],
         price: priceInCents,
         schoolId: school.id,
-        isActive: true
+        isActive: true,
+        image: image || null,
+        description: description || null
       });
 
       // Create the fundraiser with the validated date
@@ -208,7 +210,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventDate: formattedDate.toISOString().split('T')[0], // Format as YYYY-MM-DD string
         price: priceInCents,
         schoolId: school.id,
-        isActive: true
+        isActive: true,
+        image: image || null,
+        description: description || null
       });
 
       // Find students associated with this school and create notifications for them
