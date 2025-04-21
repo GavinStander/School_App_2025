@@ -103,38 +103,55 @@ export default function FundraiserCardGrid({
       
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {displayFundraisers.map((fundraiser) => (
-          <Card key={fundraiser.id} className="overflow-hidden transition-all hover:shadow-md">
-            <CardHeader className="pb-2">
+          <Card key={fundraiser.id} className="overflow-hidden transition-all hover:shadow-md flex flex-col">
+            {/* Image section */}
+            <div className="aspect-square relative overflow-hidden w-full">
+              <div 
+                className="w-full h-full bg-cover bg-center transition-transform hover:scale-105 absolute inset-0"
+                style={{ 
+                  backgroundImage: fundraiser.image 
+                    ? `url(${fundraiser.image})` 
+                    : 'url(https://images.unsplash.com/photo-1569863664388-63d677908ac0?q=80&w=1000)' 
+                }}
+              />
+              <Badge 
+                variant={fundraiser.isActive ? "default" : "secondary"}
+                className="absolute top-2 right-2 z-10"
+              >
+                {fundraiser.isActive ? "Active" : "Inactive"}
+              </Badge>
+            </div>
+            
+            <CardHeader className="pb-2 pt-4">
               <div className="flex justify-between items-start">
-                <CardTitle className="text-lg">{fundraiser.name}</CardTitle>
-                <Badge variant={fundraiser.isActive ? "default" : "secondary"}>
-                  {fundraiser.isActive ? "Active" : "Inactive"}
-                </Badge>
+                <CardTitle className="text-lg line-clamp-1">{fundraiser.name}</CardTitle>
               </div>
               <CardDescription>
                 <div className="flex items-center mt-1">
-                  <CalendarIcon size={14} className="mr-1" />
-                  {fundraiser.eventDate ? format(new Date(fundraiser.eventDate), "PPP") : "Date not set"}
+                  <CalendarIcon size={14} className="mr-1 flex-shrink-0" />
+                  <span className="line-clamp-1">
+                    {fundraiser.eventDate ? format(new Date(fundraiser.eventDate), "PPP") : "Date not set"}
+                  </span>
                 </div>
               </CardDescription>
             </CardHeader>
             
-            <CardContent className="pb-2">
+            <CardContent className="pb-2 flex-grow">
               <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                <MapPinIcon size={14} />
-                <span>{fundraiser.location}</span>
+                <MapPinIcon size={14} className="flex-shrink-0" />
+                <span className="line-clamp-1">{fundraiser.location}</span>
               </div>
               <div className="mt-4 flex justify-between items-center">
-                <p className="text-sm">
-                  Join our fundraising event to support our school!
+                <p className="text-sm line-clamp-2">
+                  {fundraiser.description || "Join our fundraising event to support our school!"}
                 </p>
-                <div className="text-sm font-medium">
-                  Ticket: {formatCurrency(10)} {/* Fixed price of $10 per ticket */}
+                <div className="text-sm font-medium ml-2 flex-shrink-0">
+                  {formatCurrency(fundraiser.price ? fundraiser.price / 100 : 10)}
                 </div>
               </div>
             </CardContent>
             
-            <CardFooter className="pt-2 flex flex-col gap-2">
+            <CardFooter className="pt-2 flex flex-col gap-2 mt-auto">
               <FundraiserDetailsDialog
                 fundraiserId={fundraiser.id}
                 trigger={
