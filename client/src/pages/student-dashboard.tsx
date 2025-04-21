@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DashboardLayout from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Ticket, DollarSign, BarChart, PlusCircle } from "lucide-react";
+import { Loader2, Ticket, BanknoteIcon, BarChart, PlusCircle } from "lucide-react";
 import FundraiserCardGrid from "@/components/fundraiser-card-grid";
 import PastFundraiserCardGrid from "@/components/past-fundraiser-card-grid";
 import { formatCurrency } from "@/lib/utils";
@@ -124,12 +124,12 @@ export default function StudentDashboard() {
             <CardTitle className="text-sm font-medium">
               Total Ticket Sales
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <BanknoteIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(sales.totalAmount)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(sales.totalTickets * 100)}</div>
             <p className="text-xs text-muted-foreground">
-              Funds raised for your school
+              Based on {sales.totalTickets} tickets at R100 each
             </p>
           </CardContent>
         </Card>
