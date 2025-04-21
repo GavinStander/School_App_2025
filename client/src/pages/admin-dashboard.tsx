@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/dashboard-layout";
 import SchoolTable from "@/components/school-table";
 import StudentTable from "@/components/student-table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, BanknoteIcon, Ticket, School, UsersIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2, BanknoteIcon, Ticket, School as SchoolIcon, Users, CalendarIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 export default function AdminDashboard() {
@@ -13,8 +13,10 @@ export default function AdminDashboard() {
   
   const { data: salesSummary, isLoading: isLoadingSales } = useQuery({
     queryKey: ["/api/admin/sales-summary"],
+    enabled: !!stats // Only fetch this data after the initial stats are loaded
   });
   
+  // Defaults with fallbacks to prevent errors
   const dashboardStats = stats || { totalSchools: 0, totalStudents: 0 };
   const salesData = salesSummary?.totalSales || { 
     totalAmount: 0, 
@@ -23,68 +25,133 @@ export default function AdminDashboard() {
     studentCount: 0 
   };
 
+  // Show loading state if any of the key data is still loading
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Admin Dashboard" role="admin">
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout title="Admin Dashboard" role="admin">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* Ticket Sales Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="rounded-full bg-indigo-100 p-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <h2 className="text-gray-500 text-sm font-medium">Total Schools</h2>
-                {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin mt-1" />
-                ) : (
-                  <p className="text-3xl font-bold text-gray-900">{dashboardStats.totalSchools}</p>
-                )}
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Ticket Sales
+            </CardTitle>
+            <BanknoteIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(salesData.totalTickets * 100)}</div>
+            <p className="text-xs text-muted-foreground">
+              Based on {salesData.totalTickets} tickets at R100 each
+            </p>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="rounded-full bg-green-100 p-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path d="M12 14l9-5-9-5-9 5 9 5z" />
-                  <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <h2 className="text-gray-500 text-sm font-medium">Total Students</h2>
-                {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin mt-1" />
-                ) : (
-                  <p className="text-3xl font-bold text-gray-900">{dashboardStats.totalStudents}</p>
-                )}
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Tickets Sold
+            </CardTitle>
+            <Ticket className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{salesData.totalTickets}</div>
+            <p className="text-xs text-muted-foreground">
+              Across all schools
+            </p>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="rounded-full bg-amber-100 p-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <h2 className="text-gray-500 text-sm font-medium">Total Fundraisers</h2>
-                <p className="text-3xl font-bold text-gray-900">0</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Active Schools
+            </CardTitle>
+            <SchoolIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardStats.totalSchools}</div>
+            <p className="text-xs text-muted-foreground">
+              Schools in the platform
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Active Students
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardStats.totalStudents}</div>
+            <p className="text-xs text-muted-foreground">
+              Total registered students
+            </p>
           </CardContent>
         </Card>
       </div>
+      
+      {/* School Sales Summary */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>School Ticket Sales</CardTitle>
+          <CardDescription>
+            Overview of ticket sales per school
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingSales ? (
+            <div className="flex justify-center p-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : salesSummary?.schoolSales && salesSummary.schoolSales.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs uppercase bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3">School</th>
+                    <th scope="col" className="px-6 py-3">Tickets Sold</th>
+                    <th scope="col" className="px-6 py-3">Total Value</th>
+                    <th scope="col" className="px-6 py-3">Active Students</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {salesSummary.schoolSales.map((school, index) => (
+                    <tr key={index} className="bg-white border-b hover:bg-gray-50">
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        {school.schoolName}
+                      </td>
+                      <td className="px-6 py-4">
+                        {school.totalTickets}
+                      </td>
+                      <td className="px-6 py-4">
+                        {formatCurrency(school.totalTickets * 100)}
+                      </td>
+                      <td className="px-6 py-4">
+                        {school.studentCount}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-4 text-center text-muted-foreground">
+              No school sales data available yet.
+            </div>
+          )}
+        </CardContent>
+      </Card>
       
       {/* Recent Schools */}
       <div className="mb-8">
