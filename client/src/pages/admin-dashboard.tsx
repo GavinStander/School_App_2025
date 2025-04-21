@@ -2,15 +2,26 @@ import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/dashboard-layout";
 import SchoolTable from "@/components/school-table";
 import StudentTable from "@/components/student-table";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, BanknoteIcon, Ticket, School, UsersIcon } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery<{ totalSchools: number, totalStudents: number }>({
     queryKey: ["/api/dashboard/stats"],
   });
   
+  const { data: salesSummary, isLoading: isLoadingSales } = useQuery({
+    queryKey: ["/api/admin/sales-summary"],
+  });
+  
   const dashboardStats = stats || { totalSchools: 0, totalStudents: 0 };
+  const salesData = salesSummary?.totalSales || { 
+    totalAmount: 0, 
+    totalTickets: 0, 
+    schoolCount: 0, 
+    studentCount: 0 
+  };
 
   return (
     <DashboardLayout title="Admin Dashboard" role="admin">

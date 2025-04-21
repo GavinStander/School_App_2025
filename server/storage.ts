@@ -467,6 +467,99 @@ export class DatabaseStorage implements IStorage {
       return { totalAmount: 0, totalTickets: 0 };
     }
   }
+  
+  // Get ticket sales summary for all students in a school
+  async getTicketSalesSummaryBySchool(schoolId: number): Promise<{ totalAmount: number; totalTickets: number; studentCount: number }> {
+    try {
+      // Using SQL to get ticket sales for all students in a school
+      const result = await db.execute(
+        sql`SELECT 
+            SUM(tp.amount) as "totalAmount", 
+            SUM(tp.quantity) as "totalTickets",
+            COUNT(DISTINCT tp.student_id) as "studentCount"
+          FROM ticket_purchases tp
+          JOIN students s ON tp.student_id = s.id
+          WHERE s.school_id = ${schoolId}
+            AND tp.payment_status = 'completed'`
+      );
+      
+      const summary = result[0] as { totalAmount: string; totalTickets: string; studentCount: string };
+      
+      return {
+        totalAmount: parseInt(summary.totalAmount || '0', 10) / 100, // Convert back from cents to dollars
+        totalTickets: parseInt(summary.totalTickets || '0', 10),
+        studentCount: parseInt(summary.studentCount || '0', 10)
+      };
+    } catch (error) {
+      console.error("Error getting school ticket sales summary:", error);
+      return { totalAmount: 0, totalTickets: 0, studentCount: 0 };
+    }
+  }
+  
+  // Get ticket sales summary for each school
+  async getTicketSalesSummaryByAllSchools(): Promise<{ schoolId: number; schoolName: string; totalAmount: number; totalTickets: number; studentCount: number }[]> {
+    try {
+      // Using SQL to get ticket sales grouped by school
+      const result = await db.execute(
+        sql`SELECT 
+            sc.id as "schoolId",
+            sc.name as "schoolName",
+            SUM(tp.amount) as "totalAmount", 
+            SUM(tp.quantity) as "totalTickets",
+            COUNT(DISTINCT tp.student_id) as "studentCount"
+          FROM schools sc
+          LEFT JOIN students s ON s.school_id = sc.id
+          LEFT JOIN ticket_purchases tp ON tp.student_id = s.id AND tp.payment_status = 'completed'
+          GROUP BY sc.id, sc.name
+          ORDER BY SUM(tp.quantity) DESC NULLS LAST`
+      );
+      
+      return (result as any[]).map(row => ({
+        schoolId: row.schoolId,
+        schoolName: row.schoolName,
+        totalAmount: parseInt(row.totalAmount || '0', 10) / 100, // Convert back from cents to dollars
+        totalTickets: parseInt(row.totalTickets || '0', 10),
+        studentCount: parseInt(row.studentCount || '0', 10)
+      }));
+    } catch (error) {
+      console.error("Error getting all schools ticket sales summary:", error);
+      return [];
+    }
+  }
+  
+  // Get total ticket sales summary across all schools
+  async getTotalTicketSalesSummary(): Promise<{ totalAmount: number; totalTickets: number; schoolCount: number; studentCount: number }> {
+    try {
+      // Using SQL to get overall total ticket sales
+      const result = await db.execute(
+        sql`SELECT 
+            SUM(tp.amount) as "totalAmount", 
+            SUM(tp.quantity) as "totalTickets",
+            COUNT(DISTINCT s.school_id) as "schoolCount",
+            COUNT(DISTINCT tp.student_id) as "studentCount"
+          FROM ticket_purchases tp
+          JOIN students s ON tp.student_id = s.id
+          WHERE tp.payment_status = 'completed'`
+      );
+      
+      const summary = result[0] as { 
+        totalAmount: string; 
+        totalTickets: string; 
+        schoolCount: string;
+        studentCount: string 
+      };
+      
+      return {
+        totalAmount: parseInt(summary.totalAmount || '0', 10) / 100, // Convert back from cents to dollars
+        totalTickets: parseInt(summary.totalTickets || '0', 10),
+        schoolCount: parseInt(summary.schoolCount || '0', 10),
+        studentCount: parseInt(summary.studentCount || '0', 10)
+      };
+    } catch (error) {
+      console.error("Error getting total ticket sales summary:", error);
+      return { totalAmount: 0, totalTickets: 0, schoolCount: 0, studentCount: 0 };
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

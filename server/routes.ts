@@ -930,6 +930,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Could not retrieve sales summary" });
     }
   });
+  
+  // Get sales summary for a school (all students in the school)
+  app.get("/api/school/sales-summary", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.role !== UserRole.SCHOOL) {
+        return res.status(403).json({ message: "Only school admins can access this endpoint" });
+      }
+      
+      const school = await storage.getSchoolByUserId(req.user.id);
+      if (!school) {
+        return res.status(404).json({ message: "School record not found" });
+      }
+      
+      const salesSummary = await storage.getTicketSalesSummaryBySchool(school.id);
+      res.json(salesSummary);
+    } catch (error) {
+      console.error("Error fetching school sales summary:", error);
+      res.status(500).json({ message: "Failed to fetch sales summary" });
+    }
+  });
+  
+  // Get sales summary for all schools (admin only)
+  app.get("/api/admin/sales-summary", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.role !== UserRole.ADMIN) {
+        return res.status(403).json({ message: "Only admins can access this endpoint" });
+      }
+      
+      const totalSalesSummary = await storage.getTotalTicketSalesSummary();
+      const schoolSalesSummaries = await storage.getTicketSalesSummaryByAllSchools();
+      
+      res.json({
+        totalSales: totalSalesSummary,
+        schoolSales: schoolSalesSummaries
+      });
+    } catch (error) {
+      console.error("Error fetching admin sales summary:", error);
+      res.status(500).json({ message: "Failed to fetch sales summary" });
+    }
+  });
 
   // Get detailed ticket purchases for a student
   app.get("/api/student/ticket-purchases", isAuthenticated, async (req, res) => {

@@ -4,10 +4,11 @@ import DashboardLayout from "@/components/dashboard-layout";
 import StudentTable from "@/components/student-table";
 import EditSchoolForm from "@/components/edit-school-form";
 import CreateNotificationForm from "@/components/create-notification-form";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Loader2, Search, MessageCircle } from "lucide-react";
+import { Loader2, Search, MessageCircle, Ticket, BanknoteIcon, Users } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 export default function SchoolDashboard() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -15,9 +16,15 @@ export default function SchoolDashboard() {
   const { data: userInfo, isLoading } = useQuery({
     queryKey: ["/api/user/info"],
   });
+  
+  const { data: salesSummary, isLoading: isLoadingSales } = useQuery({
+    queryKey: ["/api/school/sales-summary"],
+    enabled: !!userInfo
+  });
 
   const school = userInfo?.school?.school;
   const studentCount = userInfo?.school?.studentCount || 0;
+  const sales = salesSummary || { totalAmount: 0, totalTickets: 0, studentCount: 0 };
 
   if (isLoading) {
     return (
@@ -31,53 +38,50 @@ export default function SchoolDashboard() {
 
   return (
     <DashboardLayout title="School Dashboard" role="school">
-      {/* School Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* Ticket Sales Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="rounded-full bg-indigo-100 p-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <h2 className="text-gray-500 text-sm font-medium">Total Students</h2>
-                <p className="text-3xl font-bold text-gray-900">{studentCount}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Ticket Sales
+            </CardTitle>
+            <BanknoteIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(sales.totalTickets * 100)}</div>
+            <p className="text-xs text-muted-foreground">
+              Based on {sales.totalTickets} tickets at R100 each
+            </p>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="rounded-full bg-green-100 p-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 11V9a2 2 0 00-2-2m2 4v4a2 2 0 104 0v-1m-4-3H9m2 0h4m6 1a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <h2 className="text-gray-500 text-sm font-medium">Active Fundraisers</h2>
-                <p className="text-3xl font-bold text-gray-900">0</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Tickets Sold
+            </CardTitle>
+            <Ticket className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{sales.totalTickets}</div>
+            <p className="text-xs text-muted-foreground">
+              Across all school students
+            </p>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="rounded-full bg-amber-100 p-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <h2 className="text-gray-500 text-sm font-medium">Total Raised</h2>
-                <p className="text-3xl font-bold text-gray-900">$0</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Active Students
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{sales.studentCount}</div>
+            <p className="text-xs text-muted-foreground">
+              Students with ticket sales
+            </p>
           </CardContent>
         </Card>
       </div>
