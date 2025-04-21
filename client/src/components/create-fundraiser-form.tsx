@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 
 import {
@@ -47,6 +47,8 @@ const fundraiserFormSchema = z.object({
       (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
       { message: "Price must be a valid positive number" }
     ),
+  image: z.string().optional(),
+  description: z.string().optional(),
 });
 
 type FundraiserFormValues = z.infer<typeof fundraiserFormSchema>;
@@ -67,6 +69,8 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
       location: "",
       eventDate: undefined,
       price: "10.00",
+      image: "",
+      description: "",
     },
   });
 
@@ -86,6 +90,8 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
         location: values.location,
         eventDate: formattedDate,
         price: priceInCents, // Store price in cents
+        image: values.image || null,
+        description: values.description || null
       });
       return await res.json() as Fundraiser;
     },
@@ -100,6 +106,8 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
         location: "",
         eventDate: undefined,
         price: "10.00",
+        image: "",
+        description: "",
       });
       setOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/school/fundraisers"] });
@@ -218,6 +226,48 @@ export default function CreateFundraiserForm({ onSuccess }: CreateFundraiserForm
                       placeholder="10.00"
                       {...field}
                       aria-label="Ticket Price"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" />
+                      <span>Image URL</span>
+                    </div>
+                  </FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="https://example.com/image.jpg" 
+                      {...field} 
+                      aria-label="Image URL" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <textarea 
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="Describe your fundraiser event" 
+                      {...field} 
+                      aria-label="Description" 
                     />
                   </FormControl>
                   <FormMessage />
