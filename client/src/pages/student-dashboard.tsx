@@ -307,8 +307,7 @@ export default function StudentDashboard() {
                         {purchase.customerName}
                       </td>
                       <td className="px-6 py-4">
-                        {/* We would need to fetch the fundraiser name here */}
-                        Fundraiser #{purchase.fundraiserId}
+                        {schoolFundraisers.find(f => f.id === purchase.fundraiserId)?.name || `Fundraiser #${purchase.fundraiserId}`}
                       </td>
                       <td className="px-6 py-4">
                         {purchase.quantity}
