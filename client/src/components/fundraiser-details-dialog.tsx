@@ -94,174 +94,200 @@ export default function FundraiserDetailsDialog({
       <DialogTrigger asChild>
         {trigger || <Button variant="outline">View Details</Button>}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="sm:max-w-[90%] md:max-w-[700px] lg:max-w-[800px] p-0 overflow-hidden">
+        <div className="flex flex-col md:flex-row h-full">
+          {/* Left side - Image */}
+          <div className="w-full md:w-2/5 bg-muted relative">
             {isLoading ? (
-              <Skeleton className="h-8 w-3/4" />
+              <div className="aspect-square w-full">
+                <Skeleton className="h-full w-full rounded-none" />
+              </div>
             ) : (
-              fundraiser?.name
+              <div 
+                className="aspect-square w-full bg-cover bg-center"
+                style={{ 
+                  backgroundImage: fundraiser?.image 
+                    ? `url(${fundraiser.image})` 
+                    : 'url(https://images.unsplash.com/photo-1569863664388-63d677908ac0?q=80&w=1000)' 
+                }}
+              />
             )}
-          </DialogTitle>
-          <DialogDescription>
-            Fundraiser details and information
-          </DialogDescription>
-        </DialogHeader>
+          </div>
+          
+          {/* Right side - Content */}
+          <div className="w-full md:w-3/5 p-6 overflow-y-auto max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle className="text-xl md:text-2xl">
+                {isLoading ? (
+                  <Skeleton className="h-8 w-3/4" />
+                ) : (
+                  fundraiser?.name
+                )}
+              </DialogTitle>
+              <DialogDescription>
+                Fundraiser details and information
+              </DialogDescription>
+            </DialogHeader>
 
-        <div className="space-y-6">
-          {isLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-            </div>
-          ) : (
-            <>
-              <div className="grid gap-4">
-                <div className="flex items-center space-x-2">
-                  <CalendarIcon className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Date</p>
-                    <p className="text-sm text-muted-foreground">
-                      {fundraiser?.eventDate ? format(new Date(fundraiser.eventDate), "PPP") : "Date not set"}
-                    </p>
-                  </div>
+            <div className="space-y-6 my-4">
+              {isLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
                 </div>
-
-                <div className="flex items-center space-x-2">
-                  <MapPinIcon className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Location</p>
-                    <p className="text-sm text-muted-foreground">
-                      {fundraiser?.location}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <SchoolIcon className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Organized by</p>
-                    <p className="text-sm text-muted-foreground">
-                      {school?.name || "Loading school..."}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <InfoIcon className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Status</p>
-                    <Badge 
-                      variant={fundraiser?.isActive ? "default" : "secondary"}
-                      className="mt-1"
-                    >
-                      {fundraiser?.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <TicketIcon className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Ticket Price</p>
-                    <p className="text-sm text-muted-foreground font-medium">
-                      {formatCurrency(10)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <h4 className="text-sm font-medium mb-2">Description</h4>
-                <p className="text-sm text-muted-foreground">
-                  {/* If we add a description field in the future */}
-                  This is a fundraising event organized by {school?.name}. 
-                  {fundraiser?.eventDate ? 
-                    ` Join us on ${format(new Date(fundraiser.eventDate), "PPP")} at ${fundraiser?.location} to support our cause.` : 
-                    " Event details coming soon."}
-                </p>
-              </div>
-              
-              {/* Share button for students */}
-              {studentId && (
+              ) : (
                 <>
-                  <Separator />
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Share With Friends</h4>
-                    <div className="flex items-center">
-                      <div className="flex-1 py-2 px-3 border rounded-l-md bg-muted text-xs text-muted-foreground overflow-hidden whitespace-nowrap text-ellipsis">
-                        {shareableLink}
+                  <div className="grid gap-4">
+                    <div className="flex items-center space-x-2">
+                      <CalendarIcon className="h-5 w-5 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Date</p>
+                        <p className="text-sm text-muted-foreground">
+                          {fundraiser?.eventDate ? format(new Date(fundraiser.eventDate), "PPP") : "Date not set"}
+                        </p>
                       </div>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="rounded-l-none h-9"
-                              onClick={copyShareableLink}
-                            >
-                              {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Copy link</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Share this link with friends and family. When they purchase tickets, 
-                      it will be tracked for your fundraising efforts.
+
+                    <div className="flex items-center space-x-2">
+                      <MapPinIcon className="h-5 w-5 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Location</p>
+                        <p className="text-sm text-muted-foreground">
+                          {fundraiser?.location}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <SchoolIcon className="h-5 w-5 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Organized by</p>
+                        <p className="text-sm text-muted-foreground">
+                          {school?.name || "Loading school..."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <InfoIcon className="h-5 w-5 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Status</p>
+                        <Badge 
+                          variant={fundraiser?.isActive ? "default" : "secondary"}
+                          className="mt-1"
+                        >
+                          {fundraiser?.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <TicketIcon className="h-5 w-5 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Ticket Price</p>
+                        <p className="text-sm text-muted-foreground font-medium">
+                          {formatCurrency(fundraiser?.price ? fundraiser.price / 100 : 10)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Description</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {fundraiser?.description || 
+                        `This is a fundraising event organized by ${school?.name}. 
+                        ${fundraiser?.eventDate ? 
+                          `Join us on ${format(new Date(fundraiser.eventDate), "PPP")} at ${fundraiser?.location} to support our cause.` : 
+                          "Event details coming soon."}`
+                      }
                     </p>
                   </div>
+                  
+                  {/* Share button for students */}
+                  {studentId && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Share With Friends</h4>
+                        <div className="flex items-center">
+                          <div className="flex-1 py-2 px-3 border rounded-l-md bg-muted text-xs text-muted-foreground overflow-hidden whitespace-nowrap text-ellipsis">
+                            {shareableLink}
+                          </div>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="rounded-l-none h-9"
+                                  onClick={copyShareableLink}
+                                >
+                                  {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Copy link</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Share this link with friends and family. When they purchase tickets, 
+                          it will be tracked for your fundraising efforts.
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
-            </>
-          )}
-        </div>
+            </div>
 
-        <div className="mt-4 flex justify-between">
-          <Button
-            variant="default"
-            className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
-            size="lg"
-            onClick={() => {
-              // Add to cart first
-              // Get existing cart from local storage
-              const existingCartJson = localStorage.getItem('fundraiser-cart');
-              let cart = existingCartJson ? JSON.parse(existingCartJson) : [];
-              
-              // Add new item with student reference if available
-              cart.push({
-                id: Date.now(), // Generate a unique ID
-                fundraiserId: fundraiserId,
-                name: fundraiser?.name || 'Fundraiser',
-                eventDate: fundraiser?.eventDate,
-                location: fundraiser?.location || 'Unknown',
-                quantity: 1,
-                price: 10, // Fixed price at $10 per ticket
-                studentId: studentId || null, // Include the student ID if available
-                referral: studentId ? 'self' : null // Mark as self-referral if the student is buying
-              });
-              
-              // Save updated cart back to local storage
-              localStorage.setItem('fundraiser-cart', JSON.stringify(cart));
-              
-              // Close dialog
-              setOpen(false);
-              
-              // Navigate to cart page
-              window.location.href = "/cart";
-            }}
-          >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Add to Cart
-          </Button>
-          <Button onClick={() => setOpen(false)} variant="outline">Close</Button>
+            <div className="mt-4 flex flex-col sm:flex-row justify-between gap-2">
+              <Button
+                variant="default"
+                className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary sm:flex-1"
+                onClick={() => {
+                  // Add to cart first
+                  // Get existing cart from local storage
+                  const existingCartJson = localStorage.getItem('fundraiser-cart');
+                  let cart = existingCartJson ? JSON.parse(existingCartJson) : [];
+                  
+                  // Add new item with student reference if available
+                  cart.push({
+                    id: Date.now(), // Generate a unique ID
+                    fundraiserId: fundraiserId,
+                    name: fundraiser?.name || 'Fundraiser',
+                    eventDate: fundraiser?.eventDate,
+                    location: fundraiser?.location || 'Unknown',
+                    quantity: 1,
+                    price: fundraiser?.price ? fundraiser.price / 100 : 10,
+                    studentId: studentId || null, // Include the student ID if available
+                    referral: studentId ? 'self' : null, // Mark as self-referral if the student is buying
+                    image: fundraiser?.image || ''
+                  });
+                  
+                  // Save updated cart back to local storage
+                  localStorage.setItem('fundraiser-cart', JSON.stringify(cart));
+                  
+                  // Close dialog
+                  setOpen(false);
+                  
+                  // Navigate to cart page
+                  window.location.href = "/cart";
+                }}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Add to Cart
+              </Button>
+              <Button onClick={() => setOpen(false)} variant="outline" className="sm:flex-none">
+                Close
+              </Button>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
