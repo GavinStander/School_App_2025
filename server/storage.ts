@@ -270,17 +270,95 @@ export class DatabaseStorage implements IStorage {
       console.log("Creating fundraiser with direct SQL:", fundraiser);
       // Use a raw SQL query to insert the data, avoiding Drizzle mapping issues
       const result = await db.execute(
-        sql`INSERT INTO fundraisers (name, location, school_id, is_active, event_date) 
+        sql`INSERT INTO fundraisers (name, location, school_id, is_active, event_date, price, image, description) 
             VALUES (${fundraiser.name}, ${fundraiser.location}, ${fundraiser.schoolId}, 
-                   ${fundraiser.isActive ?? true}, ${fundraiser.eventDate})
+                   ${fundraiser.isActive ?? true}, ${fundraiser.eventDate}, 
+                   ${fundraiser.price ?? 1000}, ${fundraiser.image ?? null}, ${fundraiser.description ?? null})
             RETURNING id, name, location, school_id as "schoolId", is_active as "isActive", 
-                     event_date as "eventDate", created_at as "createdAt"`
+                     event_date as "eventDate", price, image, description, created_at as "createdAt"`
       );
       console.log("Create fundraiser result:", result);
       // Return the first row
       return result[0] as Fundraiser;
     } catch (error) {
       console.error("Error creating fundraiser:", error);
+      throw error;
+    }
+  }
+  
+  async updateFundraiser(id: number, updates: Partial<InsertFundraiser>): Promise<Fundraiser> {
+    try {
+      console.log("Updating fundraiser with direct SQL:", id, updates);
+      
+      // Build the SET part of the query dynamically based on what fields are provided
+      const updateFields: string[] = [];
+      const values: any[] = [];
+      
+      if (updates.name !== undefined) {
+        updateFields.push("name = $" + (values.length + 1));
+        values.push(updates.name);
+      }
+      
+      if (updates.location !== undefined) {
+        updateFields.push("location = $" + (values.length + 1));
+        values.push(updates.location);
+      }
+      
+      if (updates.isActive !== undefined) {
+        updateFields.push("is_active = $" + (values.length + 1));
+        values.push(updates.isActive);
+      }
+      
+      if (updates.eventDate !== undefined) {
+        updateFields.push("event_date = $" + (values.length + 1));
+        values.push(updates.eventDate);
+      }
+      
+      if (updates.price !== undefined) {
+        updateFields.push("price = $" + (values.length + 1));
+        values.push(updates.price);
+      }
+      
+      if (updates.image !== undefined) {
+        updateFields.push("image = $" + (values.length + 1));
+        values.push(updates.image);
+      }
+      
+      if (updates.description !== undefined) {
+        updateFields.push("description = $" + (values.length + 1));
+        values.push(updates.description);
+      }
+      
+      if (updateFields.length === 0) {
+        // No updates to make
+        const currentFundraiser = await this.getFundraiser(id);
+        if (!currentFundraiser) {
+          throw new Error("Fundraiser not found");
+        }
+        return currentFundraiser;
+      }
+      
+      // Last parameter is the ID
+      values.push(id);
+      
+      const updateQuery = `
+        UPDATE fundraisers 
+        SET ${updateFields.join(", ")} 
+        WHERE id = $${values.length}
+        RETURNING id, name, location, school_id as "schoolId", is_active as "isActive", 
+                 event_date as "eventDate", price, image, description, created_at as "createdAt"
+      `;
+      
+      const result = await db.execute(sql.raw(updateQuery), ...values);
+      
+      if (!result || result.length === 0) {
+        throw new Error("Fundraiser not found or no updates were made");
+      }
+      
+      console.log("Updated fundraiser:", result[0]);
+      return result[0] as Fundraiser;
+    } catch (error) {
+      console.error("Error updating fundraiser:", error);
       throw error;
     }
   }
