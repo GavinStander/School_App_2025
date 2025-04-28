@@ -191,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/school/fundraisers", isAuthenticated, hasRole(UserRole.SCHOOL), async (req, res) => {
+  app.post("/api/school/fundraisers", isAuthenticated, hasRole(UserRole.SCHOOL), upload.single('image'), async (req, res) => {
     try {
       const school = await storage.getSchoolByUserId(req.user.id);
       if (!school) {
@@ -199,7 +199,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Received fundraiser data:", req.body);
-      const { event_name, location, eventDate, price, image, description } = req.body;
+      
+      const { event_name, location, eventDate, price, imageUrl, description } = req.body;
+      
       // Ensure we're passing a valid date
       let formattedDate;
       try {
@@ -225,6 +227,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Price must be a positive number" });
         }
       }
+      
+      // Handle image upload
+      let imagePath = null;
+      
+      // If we have a file uploaded
+      if (req.file) {
+        // Use the path relative to the server root
+        imagePath = `/uploads/${req.file.filename}`;
+        console.log("Image uploaded:", imagePath);
+      } else if (imageUrl) {
+        // If there's no file but an imageUrl is provided, use that
+        imagePath = imageUrl;
+      }
 
       console.log("Creating fundraiser with:", {
         name: event_name, // We need 'name' instead of 'eventName'
@@ -233,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         price: priceInCents,
         schoolId: school.id,
         isActive: true,
-        image: image || null,
+        image: imagePath,
         description: description || null
       });
 
@@ -246,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         price: priceInCents,
         schoolId: school.id,
         isActive: true,
-        image: image || null,
+        image: imagePath,
         description: description || null
       });
 
